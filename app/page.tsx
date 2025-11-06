@@ -203,15 +203,22 @@ export default function Home() {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !imageBounds) return;
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
 
-    // Convert mouse coordinates to image-relative percentages
-    const x = Math.max(0, Math.min(100, ((e.clientX - imageBounds.left) / imageBounds.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - imageBounds.top) / imageBounds.height) * 100));
+  const updatePosition = (clientX: number, clientY: number) => {
+    if (!imageBounds) return;
+
+    // Convert coordinates to image-relative percentages
+    const x = Math.max(0, Math.min(100, ((clientX - imageBounds.left) / imageBounds.width) * 100));
+    const y = Math.max(0, Math.min(100, ((clientY - imageBounds.top) / imageBounds.height) * 100));
 
     const newPosition = { x, y };
     setMyPosition(newPosition);
@@ -219,6 +226,21 @@ export default function Home() {
     // Send position update to server
     if (socketRef.current) {
       socketRef.current.emit("position-update", newPosition);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    updatePosition(e.clientX, e.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (touch) {
+      updatePosition(touch.clientX, touch.clientY);
     }
   };
 
@@ -257,6 +279,10 @@ export default function Home() {
     setIsDragging(false);
   };
 
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div
       ref={containerRef}
@@ -264,14 +290,25 @@ export default function Home() {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onClick={(e) => {
+        // Prevent clicks on background
+        if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'IMG') {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      style={{ touchAction: 'none' }}
     >
       <Image
         src="/maps/city-assault-30-x-50-phased-v0-87llyi5jgauf1.png"
         alt="City Assault Map"
         fill
-        className="object-contain"
+        className="object-contain pointer-events-none"
         priority
         onLoad={calculateImageBounds}
+        draggable={false}
       />
       {/* My circle */}
       {imageBounds && (
@@ -284,8 +321,10 @@ export default function Home() {
             aspectRatio: "1 / 1",
             transform: "translate(-50%, -50%)",
             backgroundColor: myColor,
+            touchAction: 'none',
           }}
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         />
       )}
       {/* Other users' circles */}
