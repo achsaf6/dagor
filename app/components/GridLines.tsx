@@ -1,4 +1,5 @@
 import { ImageBounds } from '../types';
+import { useCoordinateMapper } from '../hooks/useCoordinateMapper';
 
 interface GridLinesProps {
   gridData: {
@@ -11,13 +12,23 @@ interface GridLinesProps {
 }
 
 export const GridLines = ({ gridData, imageBounds }: GridLinesProps) => {
+  const coordinateMapper = useCoordinateMapper(
+    imageBounds,
+    gridData?.imageWidth || 0,
+    gridData?.imageHeight || 0
+  );
+
   if (!imageBounds || !gridData) return null;
 
   const { verticalLines, horizontalLines, imageWidth, imageHeight } = gridData;
 
-  // Calculate scale factors to convert from image coordinates to screen coordinates
-  const scaleX = imageBounds.width / imageWidth;
-  const scaleY = imageBounds.height / imageHeight;
+  // Use coordinate mapper for proper scaling, fallback to direct calculation if not ready
+  const scaleX = coordinateMapper.isReady 
+    ? coordinateMapper.getScaleX() 
+    : imageBounds.width / imageWidth;
+  const scaleY = coordinateMapper.isReady 
+    ? coordinateMapper.getScaleY() 
+    : imageBounds.height / imageHeight;
 
   return (
     <svg
@@ -65,4 +76,3 @@ export const GridLines = ({ gridData, imageBounds }: GridLinesProps) => {
     </svg>
   );
 };
-
