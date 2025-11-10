@@ -1,8 +1,7 @@
-require('dotenv').config();
-
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const next = require('next');
+import 'dotenv/config';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import next from 'next';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -34,6 +33,11 @@ function getRandomColor() {
 }
 
 app.prepare().then(() => {
+  // Create HTTP server with Next.js handler
+  const httpServer = createServer(handler);
+  
+  // Create Socket.IO server
+  const io = new Server(httpServer);
 
   io.on('connection', (socket) => {
     const userId = socket.id;
