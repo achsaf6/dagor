@@ -8,10 +8,12 @@ import { useGridlines } from "../hooks/useGridlines";
 import { useViewMode } from "../hooks/useViewMode";
 import { useCoordinateMapper } from "../hooks/useCoordinateMapper";
 import { usePan } from "../hooks/usePan";
+import { useSettings } from "../hooks/useSettings";
 import { MapImage } from "./MapImage";
 import { UserCircle } from "./UserCircle";
 import { UserCircles } from "./UserCircles";
 import { GridLines } from "./GridLines";
+import { MapSettings } from "./MapSettings";
 
 export const MapView = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -19,6 +21,7 @@ export const MapView = () => {
   const { imageBounds, updateBounds } = useImageBounds(containerRef);
   const { gridData } = useGridlines();
   const { isMobile, isMounted } = useViewMode();
+  const { settings, setGridScale, setGridOffset } = useSettings();
 
   // Extract world map dimensions from gridData for coordinate mapping
   const worldMapWidth = gridData?.imageWidth || 0;
@@ -301,10 +304,23 @@ export const MapView = () => {
       onTouchMoveCapture={handleInteraction}
       style={{ touchAction: "none" }}
     >
+      <MapSettings
+        gridScale={settings.gridScale}
+        onGridScaleChange={setGridScale}
+        gridOffsetX={settings.gridOffsetX}
+        gridOffsetY={settings.gridOffsetY}
+        onGridOffsetChange={setGridOffset}
+      />
       <div style={mapWrapperStyle}>
         <MapImage onLoad={updateBounds} />
         {imageBounds && gridData && (
-          <GridLines gridData={gridData} imageBounds={imageBounds} />
+          <GridLines
+            gridData={gridData}
+            imageBounds={imageBounds}
+            gridScale={settings.gridScale}
+            gridOffsetX={settings.gridOffsetX}
+            gridOffsetY={settings.gridOffsetY}
+          />
         )}
         {imageBounds && (
           <div data-user-circle>
