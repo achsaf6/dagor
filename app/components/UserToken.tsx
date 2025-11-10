@@ -17,6 +17,8 @@ interface UserTokenProps {
     imageHeight: number;
   };
   gridScale?: number;
+  zIndex?: number;
+  isMounted?: boolean;
 }
 
 export const UserToken = ({
@@ -30,6 +32,8 @@ export const UserToken = ({
   onTouchStart,
   gridData,
   gridScale = 1.0,
+  zIndex,
+  isMounted,
 }: UserTokenProps) => {
   return (
     <Token
@@ -43,6 +47,8 @@ export const UserToken = ({
       onTouchStart={onTouchStart}
       gridData={gridData}
       gridScale={gridScale}
+      zIndex={zIndex}
+      isMounted={isMounted}
     />
   );
 };

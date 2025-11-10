@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Position } from "../types";
 import { ImageBounds } from "../types";
-import { getImagePosition } from "../utils/coordinates";
+import { getImagePosition, snapToGridCenter } from "../utils/coordinates";
 import { useCoordinateMapper } from "./useCoordinateMapper";
 
 interface TransformConfig {
@@ -19,6 +19,18 @@ interface UsePositionReturn {
   handleMouseUp: () => void;
   handleTouchEnd: () => void;
   updatePosition: (clientX: number, clientY: number) => Position | null;
+}
+
+interface GridSnapConfig {
+  gridData?: {
+    verticalLines: number[];
+    horizontalLines: number[];
+    imageWidth: number;
+    imageHeight: number;
+  };
+  gridScale?: number;
+  gridOffsetX?: number;
+  gridOffsetY?: number;
 }
 
 /**
@@ -66,9 +78,11 @@ export const usePosition = (
   onPositionUpdate: (position: Position) => void,
   worldMapWidth: number = 0,
   worldMapHeight: number = 0,
-  transform?: TransformConfig
+  transform?: TransformConfig,
+  gridSnapConfig?: GridSnapConfig
 ): UsePositionReturn => {
   const [isDragging, setIsDragging] = useState(false);
+  const [lastPosition, setLastPosition] = useState<Position | null>(null);
   const coordinateMapper = useCoordinateMapper(
     imageBounds,
     worldMapWidth,
@@ -96,26 +110,45 @@ export const usePosition = (
       }
 
       // Use coordinate mapper if available, otherwise fallback to old system
+      let position: Position | null = null;
+      
       if (coordinateMapper.isReady && worldMapWidth > 0 && worldMapHeight > 0) {
         const screenPos = { x: adjustedX, y: adjustedY };
         const imageRelative = coordinateMapper.screenToImageRelative(screenPos);
         if (imageRelative) {
-          const position: Position = { x: imageRelative.x, y: imageRelative.y };
-          onPositionUpdate(position);
-          return position;
+          position = { x: imageRelative.x, y: imageRelative.y };
         }
-        return null;
       } else {
         // Fallback to old system
-        const newPosition = getImagePosition(adjustedX, adjustedY, imageBounds);
-        if (newPosition) {
-          onPositionUpdate(newPosition);
-        }
-        return newPosition;
+        position = getImagePosition(adjustedX, adjustedY, imageBounds);
       }
+
+      if (position) {
+        // Store the position for snapping on release
+        setLastPosition(position);
+        // Don't snap during dragging, only update position
+        onPositionUpdate(position);
+        return position;
+      }
+      return null;
     },
     [imageBounds, onPositionUpdate, coordinateMapper, worldMapWidth, worldMapHeight, transform]
   );
+
+  // Snap position to grid center when dragging ends
+  const snapAndUpdate = useCallback(() => {
+    if (lastPosition && gridSnapConfig?.gridData) {
+      const snappedPosition = snapToGridCenter(
+        lastPosition,
+        gridSnapConfig.gridData,
+        gridSnapConfig.gridScale ?? 1.0,
+        gridSnapConfig.gridOffsetX ?? 0,
+        gridSnapConfig.gridOffsetY ?? 0
+      );
+      onPositionUpdate(snappedPosition);
+      setLastPosition(null);
+    }
+  }, [lastPosition, gridSnapConfig, onPositionUpdate]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -152,11 +185,13 @@ export const usePosition = (
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  }, []);
+    snapAndUpdate();
+  }, [snapAndUpdate]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
-  }, []);
+    snapAndUpdate();
+  }, [snapAndUpdate]);
 
   return {
     isDragging,

@@ -22,6 +22,8 @@ interface TokenProps {
     imageHeight: number;
   };
   gridScale?: number;
+  zIndex?: number;
+  isMounted?: boolean;
 }
 
 export const Token = ({
@@ -35,6 +37,8 @@ export const Token = ({
   onTouchStart,
   gridData,
   gridScale = 1.0,
+  zIndex = 10,
+  isMounted = true,
 }: TokenProps) => {
   const coordinateMapper = useCoordinateMapper(
     imageBounds,
@@ -77,7 +81,8 @@ export const Token = ({
     const scaledSpacing = avgSpacing * gridScale;
 
     // Convert to viewport percentage
-    if (coordinateMapper.isReady && worldMapWidth > 0 && worldMapHeight > 0) {
+    // Only use coordinate mapper after mount to prevent hydration mismatch
+    if (isMounted && coordinateMapper.isReady && worldMapWidth > 0 && worldMapHeight > 0) {
       // Use coordinate mapper for proper scaling
       const sizeScale = coordinateMapper.getSizeScale();
       const sizeInScreenPixels = scaledSpacing * sizeScale;
@@ -91,9 +96,10 @@ export const Token = ({
   };
 
   // Use coordinate mapper if world map dimensions are available, otherwise fallback to old system
+  // Only use coordinate mapper after mount to prevent hydration mismatch
   let viewportPos: Position;
 
-  if (coordinateMapper.isReady && worldMapWidth > 0 && worldMapHeight > 0) {
+  if (isMounted && coordinateMapper.isReady && worldMapWidth > 0 && worldMapHeight > 0) {
     // Convert image-relative position to screen position using coordinate mapper
     const imageRelative = positionToImageRelative(position);
     const screenPos = coordinateMapper.imageRelativeToScreen(imageRelative);
@@ -109,16 +115,20 @@ export const Token = ({
       viewportPos = getViewportPosition(position, imageBounds);
     }
   } else {
-    // Fallback to old system when coordinate mapper is not ready
+    // Fallback to old system when coordinate mapper is not ready or before mount
     viewportPos = getViewportPosition(position, imageBounds);
   }
 
   // Calculate token size based on grid square size
   const tokenSize = calculateGridSquareSize();
 
+  // Use Tailwind z-index classes to avoid hydration issues
+  // Only apply custom z-index after mount to prevent hydration mismatch
+  const zIndexClass = isMounted && zIndex === 20 ? "z-20" : "z-10";
+
   return (
     <div
-      className={`absolute rounded-full border-2 border-white shadow-lg z-10 ${
+      className={`absolute rounded-full border-2 border-white shadow-lg ${zIndexClass} ${
         isInteractive ? "cursor-move" : ""
       }`}
       style={{

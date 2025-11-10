@@ -20,7 +20,7 @@ export const MapView = () => {
   const { myColor, myPosition, otherUsers, updateMyPosition } = useSocket();
   const { imageBounds, updateBounds } = useImageBounds(containerRef);
   const { gridData } = useGridlines();
-  const { isMobile, isMounted } = useViewMode();
+  const { isMobile, isDisplay, isMounted } = useViewMode();
   const { settings, setGridScale, setGridOffset } = useSettings();
 
   // Extract world map dimensions from gridData for coordinate mapping
@@ -156,7 +156,13 @@ export const MapView = () => {
     updateMyPosition, 
     worldMapWidth, 
     worldMapHeight,
-    mobileTransform
+    mobileTransform,
+    {
+      gridData,
+      gridScale: settings.gridScale,
+      gridOffsetX: settings.gridOffsetX,
+      gridOffsetY: settings.gridOffsetY,
+    }
   );
 
   // Handle panning on container (not user token)
@@ -304,13 +310,15 @@ export const MapView = () => {
       onTouchMoveCapture={handleInteraction}
       style={{ touchAction: "none" }}
     >
-      <MapSettings
-        gridScale={settings.gridScale}
-        onGridScaleChange={setGridScale}
-        gridOffsetX={settings.gridOffsetX}
-        gridOffsetY={settings.gridOffsetY}
-        onGridOffsetChange={setGridOffset}
-      />
+      {isDisplay && (
+        <MapSettings
+          gridScale={settings.gridScale}
+          onGridScaleChange={setGridScale}
+          gridOffsetX={settings.gridOffsetX}
+          gridOffsetY={settings.gridOffsetY}
+          onGridOffsetChange={setGridOffset}
+        />
+      )}
       <div style={mapWrapperStyle}>
         <MapImage onLoad={updateBounds} />
         {imageBounds && gridData && (
@@ -335,6 +343,8 @@ export const MapView = () => {
               onTouchStart={handleTokenTouchStart}
               gridData={gridData}
               gridScale={settings.gridScale}
+              zIndex={20}
+              isMounted={isMounted}
             />
           </div>
         )}
@@ -345,6 +355,7 @@ export const MapView = () => {
           worldMapHeight={worldMapHeight}
           gridData={gridData}
           gridScale={settings.gridScale}
+          isMounted={isMounted}
         />
       </div>
     </div>
