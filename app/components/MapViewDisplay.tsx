@@ -20,10 +20,6 @@ export const MapViewDisplay = () => {
   const { gridData } = useGridlines();
   const { settings, setGridScale, setGridOffset } = useSettings();
 
-  // Drag state
-  const [draggingColor, setDraggingColor] = useState<string | null>(null);
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-
   // Extract world map dimensions from gridData for coordinate mapping
   const worldMapWidth = gridData.imageWidth || 0;
   const worldMapHeight = gridData.imageHeight || 0;
@@ -32,6 +28,10 @@ export const MapViewDisplay = () => {
 
   // No transform for display mode
   const transform = { scale: 1, translateX: 0, translateY: 0 };
+
+  // Drag state for token creation
+  const [draggingColor, setDraggingColor] = useState<string | null>(null);
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Track mouse position during drag
   useEffect(() => {
@@ -71,24 +71,20 @@ export const MapViewDisplay = () => {
       return;
     }
 
-    // Get drop position
     const dropX = e.clientX;
     const dropY = e.clientY;
 
-    // Convert screen coordinates to image-relative position
     const imageRelative = coordinateMapper.screenToImageRelative({
       x: dropX,
       y: dropY,
     });
 
     if (imageRelative) {
-      // Convert to Position format (percentage)
       let position: Position = {
         x: imageRelative.x,
         y: imageRelative.y,
       };
 
-      // Snap to grid center if grid data is available
       if (gridData && gridData.imageWidth > 0 && gridData.imageHeight > 0) {
         position = snapToGridCenter(
           position,
@@ -99,11 +95,9 @@ export const MapViewDisplay = () => {
         );
       }
 
-      // Create the token at the snapped position
       addToken(draggingColor, position);
     }
 
-    // Reset drag state
     handleTokenDragEnd();
   };
 
@@ -169,4 +163,3 @@ export const MapViewDisplay = () => {
     </div>
   );
 };
-

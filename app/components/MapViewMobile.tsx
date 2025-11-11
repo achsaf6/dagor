@@ -31,113 +31,148 @@ export const MapViewMobile = () => {
     worldMapHeight
   );
 
-  // Helper function to calculate center transform
-  // This calculates the translate needed to center the user's token
-  // CSS transforms apply right-to-left: scale(zoomScale) translate(x, y) means translate first, then scale
-  // With transformOrigin: center center, the scale happens around the center point
-  // After translate(t) then scale(s) around center C:
-  //   A point at P becomes: C + (P + t - C) * s = C + (P - C) * s + t * s
-  // To center userPos at viewport center:
-  //   center = center + (userPos - center) * s + translate * s
-  //   translate * s = -(userPos - center) * s
-  //   translate = -(userPos - center) = (center - userPos)
-  // So we need translate = (center - userPos) WITHOUT multiplying by scale
-  const calculateCenterTransform = useCallback(() => {
-    if (!imageBounds || !coordinateMapper.isReady || worldMapWidth === 0 || worldMapHeight === 0) {
-      return { translateX: 0, translateY: 0 };
+  // Mobile zoom factor - optimized for smartphone screens
+  const mobileZoomScale = 2.5;
+
+  // Calculate viewport offset to center on user token
+  // CSS transform applies translate then scale around center
+  // To center user at viewport center: translate = (center - userPos) / scale
+  const calculateViewportOffset = useCallback(() => {
+    if (!imageBounds || !coordinateMapper.isReady || !myUserId || worldMapWidth === 0 || worldMapHeight === 0) {
+      return { offsetX: 0, offsetY: 0 };
     }
 
-    // Convert user's image-relative position to screen coordinates (unscaled space)
-    const userImageRelative = { x: myPosition.x, y: myPosition.y };
-    const userScreenPos = coordinateMapper.imageRelativeToScreen(userImageRelative);
-    
+    // Get user's position in screen coordinates (untransformed)
+    const userScreenPos = coordinateMapper.imageRelativeToScreen({
+      x: myPosition.x,
+      y: myPosition.y,
+    });
+
     if (!userScreenPos) {
-      return { translateX: 0, translateY: 0 };
+      return { offsetX: 0, offsetY: 0 };
     }
 
-    // Calculate center of viewport (container center)
+    // Viewport center
     const viewportCenterX = imageBounds.containerLeft + imageBounds.containerWidth / 2;
     const viewportCenterY = imageBounds.containerTop + imageBounds.containerHeight / 2;
 
-    // Calculate translate needed to center the user
-    // Since translate happens first, then scale, and scale multiplies the translate,
-    // we need: translate = (center - userPos) (not multiplied by scale)
-    const deltaX = viewportCenterX - userScreenPos.x;
-    const deltaY = viewportCenterY - userScreenPos.y;
-    
-    const translateX = deltaX;
-    const translateY = deltaY;
+    // Calculate offset: (center - userPos) / scale
+    // Divide by scale because translate happens before scale in CSS
+    const offsetX = (viewportCenterX - userScreenPos.x) / mobileZoomScale;
+    const offsetY = (viewportCenterY - userScreenPos.y) / mobileZoomScale;
 
-    return { translateX, translateY };
-  }, [imageBounds, coordinateMapper, worldMapWidth, worldMapHeight, myPosition]);
+    return { offsetX, offsetY };
+  }, [imageBounds, coordinateMapper, myUserId, myPosition, worldMapWidth, worldMapHeight, mobileZoomScale]);
 
-  // Calculate initial center position for auto-centering
-  const initialCenterTransform = useMemo(() => {
-    return calculateCenterTransform();
-  }, [calculateCenterTransform]);
-
-  // Pan hook for mobile mode - use ref to avoid circular dependency
+  // Recalculate offset when orientation changes or image bounds update
+  const [viewportOffset, setViewportOffset] = useState({ offsetX: 0, offsetY: 0 });
+  
+  // Pan hook refs
   const panRef = useRef<{ setPanPosition: (x: number, y: number, animated: boolean) => void } | null>(null);
   const initializedRef = useRef(false);
+  const isPanningRef = useRef(false);
 
-  // Mobile zoom factor
-  const zoomScale = 2.5;
-
-  // Auto-center callback for pan hook
+  // Auto-center callback - recenters on user token after inactivity
   const handleAutoCenter = useCallback(() => {
     if (!imageBounds || !coordinateMapper.isReady) return;
     
-    const centerTransform = calculateCenterTransform();
+    const offset = calculateViewportOffset();
+    setViewportOffset(offset);
     if (panRef.current) {
-      panRef.current.setPanPosition(centerTransform.translateX, centerTransform.translateY, true);
+      panRef.current.setPanPosition(offset.offsetX, offset.offsetY, true);
     }
-  }, [imageBounds, coordinateMapper, calculateCenterTransform]);
+  }, [imageBounds, coordinateMapper, calculateViewportOffset]);
 
   // Pan hook for mobile mode
   const pan = usePan({
     enabled: true,
     onAutoCenter: handleAutoCenter,
     inactivityTimeout: 5000,
-    scale: zoomScale, // Pass scale so pan accounts for zoom
+    scale: mobileZoomScale,
   });
 
-  // Store pan functions in ref (use effect to avoid render-time ref update)
+  // Update isPanning ref when pan state changes
+  useEffect(() => {
+    isPanningRef.current = pan.panState.isPanning;
+  }, [pan.panState.isPanning]);
+
+  // Store pan functions in ref
   useEffect(() => {
     panRef.current = {
       setPanPosition: pan.setPanPosition,
     };
   }, [pan.setPanPosition]);
 
-  // Initialize pan state with center position when mobile mode is first enabled
+  // Handle screen rotation and orientation changes
   useEffect(() => {
-    if (!initializedRef.current && initialCenterTransform.translateX !== 0) {
-      pan.setPanPosition(initialCenterTransform.translateX, initialCenterTransform.translateY, false);
+    if (!isMounted) return;
+
+    const handleOrientationChange = () => {
+      // Small delay to ensure layout has updated after rotation
+      setTimeout(() => {
+        updateBounds();
+        const offset = calculateViewportOffset();
+        setViewportOffset(offset);
+        // Reset pan state and recenter after rotation
+        if (panRef.current) {
+          panRef.current.setPanPosition(offset.offsetX, offset.offsetY, true);
+        }
+      }, 100);
+    };
+
+    // Listen for orientation changes (mobile devices)
+    window.addEventListener('orientationchange', handleOrientationChange);
+    // Also listen for resize (handles both orientation and window resize)
+    window.addEventListener('resize', handleOrientationChange);
+
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+    };
+  }, [isMounted, calculateViewportOffset, updateBounds]);
+
+  // Recalculate viewport offset when image bounds change
+  useEffect(() => {
+    if (isMounted && imageBounds && coordinateMapper.isReady) {
+      const offset = calculateViewportOffset();
+      setViewportOffset(offset);
+      // Update pan position if not currently panning and already initialized
+      if (panRef.current && !isPanningRef.current && initializedRef.current) {
+        panRef.current.setPanPosition(offset.offsetX, offset.offsetY, false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted, imageBounds?.containerWidth, imageBounds?.containerHeight, imageBounds?.left, imageBounds?.top, coordinateMapper.isReady]);
+
+  // Initialize pan state when mobile mode is first enabled
+  useEffect(() => {
+    if (isMounted && !initializedRef.current && viewportOffset.offsetX !== 0) {
+      pan.setPanPosition(viewportOffset.offsetX, viewportOffset.offsetY, false);
       initializedRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialCenterTransform.translateX, initialCenterTransform.translateY]);
+  }, [isMounted, viewportOffset.offsetX, viewportOffset.offsetY]);
 
-  // Calculate mobile mode transforms (zoom + pan)
-  // Only apply mobile transforms after mount to prevent hydration mismatch
-  const mobileTransform = useMemo(() => {
+  // Calculate transform for mobile mode
+  const transform = useMemo(() => {
     if (!isMounted) {
       return { scale: 1, translateX: 0, translateY: 0 };
     }
 
-    // Use pan state if panning, otherwise use initial center transform
+    // Use pan state if actively panning, otherwise use calculated viewport offset
     const translateX = pan.panState.isPanning || pan.panState.translateX !== 0 
       ? pan.panState.translateX 
-      : initialCenterTransform.translateX;
+      : viewportOffset.offsetX;
     const translateY = pan.panState.isPanning || pan.panState.translateY !== 0 
       ? pan.panState.translateY 
-      : initialCenterTransform.translateY;
+      : viewportOffset.offsetY;
 
     return {
-      scale: zoomScale,
+      scale: mobileZoomScale,
       translateX,
       translateY,
     };
-  }, [isMounted, zoomScale, pan.panState, initialCenterTransform]);
+  }, [isMounted, mobileZoomScale, pan.panState, viewportOffset]);
 
   // Track which token is being dragged (if any)
   const [draggingTokenId, setDraggingTokenId] = useState<string | null>(null);
@@ -147,31 +182,36 @@ export const MapViewMobile = () => {
     setDraggingTokenId(isDragging ? tokenId : null);
   }, []);
 
-  // Handle panning on container (not tokens)
+  // Pan handlers for mobile mode - improved touch support
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only start pan if not clicking on any token
     const target = e.target as HTMLElement;
     const tokenElement = target.closest('[data-token]');
     if (tokenElement) {
       return; // Let token handle it
     }
-    e.stopPropagation(); // Prevent token handlers from firing
-    // Clear any token dragging state when starting pan
+    e.stopPropagation();
     setDraggingTokenId(null);
     pan.startPan(e.clientX, e.clientY);
     pan.trackInteraction();
   }, [pan]);
 
   const handleContainerTouchStart = useCallback((e: React.TouchEvent) => {
+    // Only handle single touch - let multi-touch pass through for pinch zoom (if needed later)
+    if (e.touches.length > 1) {
+      return;
+    }
+    
     const target = e.target as HTMLElement;
     const tokenElement = target.closest('[data-token]');
     if (tokenElement) {
-      return;
+      return; // Let token handle it
     }
-    e.stopPropagation(); // Prevent token handlers from firing
+    
+    e.preventDefault(); // Prevent scrolling and other default behaviors
+    e.stopPropagation();
+    
     const touch = e.touches[0];
     if (touch) {
-      // Clear any token dragging state when starting pan
       setDraggingTokenId(null);
       pan.startPan(touch.clientX, touch.clientY);
       pan.trackInteraction();
@@ -179,21 +219,26 @@ export const MapViewMobile = () => {
   }, [pan]);
 
   const handleContainerMouseMove = useCallback((e: React.MouseEvent) => {
-    // Only pan if we're actively panning and not dragging token
-    if (pan.panState.isPanning && !draggingTokenId) {
-      pan.updatePan(e.clientX, e.clientY);
-      pan.trackInteraction();
-    }
+    if (!pan.panState.isPanning || draggingTokenId) return;
+    e.preventDefault();
+    pan.updatePan(e.clientX, e.clientY);
+    pan.trackInteraction();
   }, [pan, draggingTokenId]);
 
   const handleContainerTouchMove = useCallback((e: React.TouchEvent) => {
-    // Only pan if we're actively panning and not dragging token
-    if (pan.panState.isPanning && !draggingTokenId) {
-      const touch = e.touches[0];
-      if (touch) {
-        pan.updatePan(touch.clientX, touch.clientY);
-        pan.trackInteraction();
-      }
+    if (!pan.panState.isPanning || draggingTokenId) return;
+    
+    // Only handle single touch
+    if (e.touches.length > 1) {
+      pan.endPan();
+      return;
+    }
+    
+    e.preventDefault(); // Prevent scrolling
+    const touch = e.touches[0];
+    if (touch) {
+      pan.updatePan(touch.clientX, touch.clientY);
+      pan.trackInteraction();
     }
   }, [pan, draggingTokenId]);
 
@@ -201,7 +246,12 @@ export const MapViewMobile = () => {
     pan.endPan();
   }, [pan]);
 
-  const handleContainerTouchEnd = useCallback(() => {
+  const handleContainerTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    pan.endPan();
+  }, [pan]);
+
+  const handleContainerTouchCancel = useCallback(() => {
     pan.endPan();
   }, [pan]);
 
@@ -210,11 +260,10 @@ export const MapViewMobile = () => {
     pan.trackInteraction();
   }, [pan]);
 
-  // Apply transform to a wrapper div for mobile mode
-  // Only apply styles after mount to prevent hydration mismatch
-  const mapWrapperStyle = isMounted && mobileTransform.scale !== 1
+  // Apply transform to wrapper for mobile mode
+  const mapWrapperStyle = isMounted && transform.scale !== 1
     ? {
-        transform: `scale(${mobileTransform.scale}) translate(${mobileTransform.translateX}px, ${mobileTransform.translateY}px)`,
+        transform: `scale(${transform.scale}) translate(${transform.translateX}px, ${transform.translateY}px)`,
         transformOrigin: 'center center',
         width: '100%',
         height: '100%',
@@ -228,7 +277,6 @@ export const MapViewMobile = () => {
       className="fixed inset-0 m-0 p-0 overflow-hidden"
       onMouseDown={handleContainerMouseDown}
       onMouseMove={(e) => {
-        // Only handle panning if not dragging a token
         if (pan.panState.isPanning && !draggingTokenId) {
           handleContainerMouseMove(e);
         }
@@ -242,6 +290,7 @@ export const MapViewMobile = () => {
         }
       }}
       onTouchEnd={handleContainerTouchEnd}
+      onTouchCancel={handleContainerTouchCancel}
       onClick={(e) => {
         // Prevent clicks on background
         if (
@@ -283,7 +332,7 @@ export const MapViewMobile = () => {
               gridOffsetY={settings.gridOffsetY}
               isMounted={isMounted}
               onPositionUpdate={updateTokenPosition}
-              transform={mobileTransform}
+              transform={transform}
               onDragStateChange={handleDragStateChange}
               zIndex={20}
             />
@@ -304,11 +353,10 @@ export const MapViewMobile = () => {
           myUserId={myUserId}
           onRemoveToken={removeToken}
           onPositionUpdate={updateTokenPosition}
-          transform={mobileTransform}
+          transform={transform}
           onDragStateChange={handleDragStateChange}
         />
       </div>
     </div>
   );
 };
-
