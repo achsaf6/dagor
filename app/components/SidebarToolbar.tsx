@@ -98,17 +98,7 @@ export const SidebarToolbar = ({
       {/* Token Picker */}
       <TokenPicker onTokenDragStart={onTokenDragStart} onTokenDragEnd={onTokenDragEnd} />
 
-      {/* Future features can be added here */}
-      {/* Example placeholder for future features:
-      <button
-        className="bg-black/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-white/20 text-white hover:bg-black/90 transition-all"
-        aria-label="Future Feature"
-      >
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="..." />
-        </svg>
-      </button>
-      */}
+        
     </div>
   );
 };
