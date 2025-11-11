@@ -1,34 +1,119 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useSocket } from "../hooks/useSocket";
 import { useImageBounds } from "../hooks/useImageBounds";
 import { useGridlines } from "../hooks/useGridlines";
 import { useSettings } from "../hooks/useSettings";
+import { useCoordinateMapper } from "../hooks/useCoordinateMapper";
 import { MapImage } from "./MapImage";
 import { TokenManager } from "./TokenManager";
 import { GridLines } from "./GridLines";
 import { SidebarToolbar } from "./SidebarToolbar";
+import { Position } from "../types";
+import { snapToGridCenter } from "../utils/coordinates";
 
 export const MapViewDisplay = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { myUserId, otherUsers, disconnectedUsers, updateTokenPosition, removeToken } = useSocket(true);
+  const { myUserId, otherUsers, disconnectedUsers, updateTokenPosition, removeToken, addToken } = useSocket(true);
   const { imageBounds, updateBounds } = useImageBounds(containerRef);
   const { gridData } = useGridlines();
   const { settings, setGridScale, setGridOffset } = useSettings();
+
+  // Drag state
+  const [draggingColor, setDraggingColor] = useState<string | null>(null);
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Extract world map dimensions from gridData for coordinate mapping
   const worldMapWidth = gridData.imageWidth || 0;
   const worldMapHeight = gridData.imageHeight || 0;
 
+  const coordinateMapper = useCoordinateMapper(imageBounds, worldMapWidth, worldMapHeight);
+
   // No transform for display mode
   const transform = { scale: 1, translateX: 0, translateY: 0 };
+
+  // Track mouse position during drag
+  useEffect(() => {
+    if (!draggingColor) {
+      return;
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setDragPosition({ x: e.clientX, y: e.clientY });
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      setDragPosition(null);
+    };
+  }, [draggingColor]);
+
+  const handleTokenDragStart = (color: string) => {
+    setDraggingColor(color);
+  };
+
+  const handleTokenDragEnd = () => {
+    setDraggingColor(null);
+    setDragPosition(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    
+    if (!draggingColor || !imageBounds || !coordinateMapper.isReady) {
+      return;
+    }
+
+    // Get drop position
+    const dropX = e.clientX;
+    const dropY = e.clientY;
+
+    // Convert screen coordinates to image-relative position
+    const imageRelative = coordinateMapper.screenToImageRelative({
+      x: dropX,
+      y: dropY,
+    });
+
+    if (imageRelative) {
+      // Convert to Position format (percentage)
+      let position: Position = {
+        x: imageRelative.x,
+        y: imageRelative.y,
+      };
+
+      // Snap to grid center if grid data is available
+      if (gridData && gridData.imageWidth > 0 && gridData.imageHeight > 0) {
+        position = snapToGridCenter(
+          position,
+          gridData,
+          settings.gridScale,
+          settings.gridOffsetX,
+          settings.gridOffsetY
+        );
+      }
+
+      // Create the token at the snapped position
+      addToken(draggingColor, position);
+    }
+
+    // Reset drag state
+    handleTokenDragEnd();
+  };
 
   return (
     <div
       ref={containerRef}
       className="fixed inset-0 m-0 p-0 overflow-hidden"
       style={{ touchAction: "none" }}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       <SidebarToolbar
         gridScale={settings.gridScale}
@@ -36,6 +121,8 @@ export const MapViewDisplay = () => {
         gridOffsetX={settings.gridOffsetX}
         gridOffsetY={settings.gridOffsetY}
         onGridOffsetChange={setGridOffset}
+        onTokenDragStart={handleTokenDragStart}
+        onTokenDragEnd={handleTokenDragEnd}
       />
       <MapImage onLoad={updateBounds} />
       {imageBounds && (
@@ -65,6 +152,20 @@ export const MapViewDisplay = () => {
         transform={transform}
         onDragStateChange={() => {}}
       />
+      {/* Preview token while dragging */}
+      {draggingColor && dragPosition && imageBounds && (
+        <div
+          className="fixed rounded-full border-2 border-white border-dashed shadow-lg z-30 pointer-events-none opacity-60"
+          style={{
+            left: `${dragPosition.x}px`,
+            top: `${dragPosition.y}px`,
+            width: "40px",
+            height: "40px",
+            transform: "translate(-50%, -50%)",
+            backgroundColor: draggingColor,
+          }}
+        />
+      )}
     </div>
   );
 };

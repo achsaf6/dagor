@@ -16,6 +16,7 @@ interface UseSocketReturn {
   updateMyPosition: (position: Position) => void;
   updateTokenPosition: (tokenId: string, position: Position) => void;
   removeToken: (persistentUserId: string) => void;
+  addToken: (color: string, position?: Position) => void;
 }
 
 export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
@@ -282,6 +283,24 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
       setDisconnectedUsers(disconnectedMap);
     });
 
+    // Handle new token added
+    socketInstance.on(
+      "token-added",
+      (data: { userId: string; persistentUserId: string; color: string; position: { x: number; y: number } }) => {
+        const userData: UserWithPersistentId = {
+          id: data.userId,
+          color: data.color,
+          position: data.position,
+          persistentUserId: data.persistentUserId,
+        };
+        setOtherUsers((prev) => {
+          const updated = new Map(prev);
+          updated.set(data.userId, userData);
+          return updated;
+        });
+      }
+    );
+
     // Cleanup on unmount
     return () => {
       socketInstance.disconnect();
@@ -332,6 +351,12 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
     }
   };
 
+  const addToken = (color: string, position: Position = { x: 50, y: 50 }) => {
+    if (socketRef.current) {
+      socketRef.current.emit("add-token", { color, position });
+    }
+  };
+
   return {
     myUserId,
     myColor,
@@ -342,6 +367,7 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
     updateMyPosition,
     updateTokenPosition,
     removeToken,
+    addToken,
   };
 };
 

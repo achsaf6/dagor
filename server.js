@@ -1,4 +1,4 @@
-import 'dotenv/config';
+ import 'dotenv/config';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import next from 'next';
@@ -213,6 +213,34 @@ app.prepare().then(() => {
         // Broadcast removal to all clients
         io.emit('token-removed', { persistentUserId: data.persistentUserId });
       }
+    });
+
+    // Handle adding a new token (colored token, not a user)
+    socket.on('add-token', (data) => {
+      const { color, position } = data;
+      // Generate a unique ID for this token
+      const tokenId = `token-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      const persistentTokenId = `token-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      
+      // Create token data (treating it like a user for consistency)
+      const tokenData = {
+        id: tokenId,
+        persistentUserId: persistentTokenId,
+        color: color || getRandomColor(),
+        position: position || { x: 50, y: 50 },
+        isDisplay: false, // Tokens are not display mode users
+      };
+
+      // Add to users map (tokens are treated as users in the system)
+      users.set(tokenId, tokenData);
+
+      // Broadcast new token to all clients
+      io.emit('token-added', {
+        userId: tokenId,
+        persistentUserId: persistentTokenId,
+        color: tokenData.color,
+        position: tokenData.position,
+      });
     });
   });
 
