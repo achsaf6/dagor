@@ -30,7 +30,12 @@ export const usePan = ({
 
   const [startPanPos, setStartPanPos] = useState<{ x: number; y: number } | null>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastInteractionRef = useRef<number>(Date.now());
+  const lastInteractionRef = useRef<number>(0);
+  
+  // Initialize lastInteractionRef on mount
+  useEffect(() => {
+    lastInteractionRef.current = Date.now();
+  }, []);
 
   // Reset inactivity timer
   const resetInactivityTimer = useCallback(() => {
