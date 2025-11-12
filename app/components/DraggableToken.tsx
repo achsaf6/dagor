@@ -92,7 +92,8 @@ export const DraggableToken = ({
       gridScale,
       gridOffsetX,
       gridOffsetY,
-    }
+    },
+    position // Pass current position for viewport-relative dragging
   );
 
   // Wrap handleMouseMove to track if mouse has moved (to distinguish click from drag)

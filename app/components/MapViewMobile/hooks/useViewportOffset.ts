@@ -1,0 +1,63 @@
+import { useState, useRef, useCallback } from "react";
+import { ImageBounds } from "../../../types";
+import { CoordinateMapper } from "../../../hooks/useCoordinateMapper";
+import { ViewportOffset } from "../types";
+
+interface UseViewportOffsetParams {
+  imageBounds: ImageBounds | null;
+  coordinateMapper: CoordinateMapper;
+  myUserId: string | null;
+  myPosition: { x: number; y: number };
+  worldMapWidth: number;
+  worldMapHeight: number;
+  zoomScaleRef: React.MutableRefObject<number>;
+}
+
+export const useViewportOffset = ({
+  imageBounds,
+  coordinateMapper,
+  myUserId,
+  myPosition,
+  worldMapWidth,
+  worldMapHeight,
+  zoomScaleRef,
+}: UseViewportOffsetParams) => {
+  const [viewportOffset, setViewportOffset] = useState<ViewportOffset>({ offsetX: 0, offsetY: 0 });
+  const initializedRef = useRef(false);
+
+  const calculateViewportOffset = useCallback((): ViewportOffset => {
+    if (!imageBounds || !coordinateMapper.isReady || !myUserId || worldMapWidth === 0 || worldMapHeight === 0) {
+      return { offsetX: 0, offsetY: 0 };
+    }
+
+    // Get user's position in screen coordinates (untransformed)
+    const userScreenPos = coordinateMapper.imageRelativeToScreen({
+      x: myPosition.x,
+      y: myPosition.y,
+    });
+
+    if (!userScreenPos) {
+      return { offsetX: 0, offsetY: 0 };
+    }
+
+    // Viewport center
+    const viewportCenterX = imageBounds.containerLeft + imageBounds.containerWidth / 2;
+    const viewportCenterY = imageBounds.containerTop + imageBounds.containerHeight / 2;
+
+    // Calculate offset: (center - userPos) / scale
+    // Divide by scale because translate happens before scale in CSS
+    const currentScale = zoomScaleRef.current;
+    const offsetX = (viewportCenterX - userScreenPos.x) / currentScale;
+    const offsetY = (viewportCenterY - userScreenPos.y) / currentScale;
+
+    return { offsetX, offsetY };
+  }, [imageBounds, coordinateMapper, myUserId, myPosition, worldMapWidth, worldMapHeight, zoomScaleRef]);
+
+  return {
+    viewportOffset,
+    setViewportOffset,
+    calculateViewportOffset,
+    initializedRef,
+  };
+};
+
