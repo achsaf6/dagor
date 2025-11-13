@@ -44,11 +44,10 @@ export const useViewportOffset = ({
     const viewportCenterX = imageBounds.containerLeft + imageBounds.containerWidth / 2;
     const viewportCenterY = imageBounds.containerTop + imageBounds.containerHeight / 2;
 
-    // Calculate offset: (center - userPos) / scale
-    // Divide by scale because translate happens before scale in CSS
-    const currentScale = zoomScaleRef.current;
-    const offsetX = (viewportCenterX - userScreenPos.x) / currentScale;
-    const offsetY = (viewportCenterY - userScreenPos.y) / currentScale;
+    // Calculate offset: (center - userPos)
+    // Translation already happens in scaled space because scale is applied about the center
+    const offsetX = viewportCenterX - userScreenPos.x;
+    const offsetY = viewportCenterY - userScreenPos.y;
 
     return { offsetX, offsetY };
   }, [imageBounds, coordinateMapper, myUserId, myPosition, worldMapWidth, worldMapHeight, zoomScaleRef]);
