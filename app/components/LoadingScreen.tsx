@@ -2,8 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
-
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const DitherBackground = dynamic(() => import("@/components/Dither"), {
@@ -14,20 +13,39 @@ interface LoadingScreenProps {
   isReady: boolean;
 }
 
+const MIN_VISIBLE_DURATION_MS = 5000;
 
 export const LoadingScreen = ({ isReady }: LoadingScreenProps) => {
   const [isVisible, setIsVisible] = useState(true);
   const [shouldRender, setShouldRender] = useState(true);
+  const visibleSinceRef = useRef<number>(0);
 
   useEffect(() => {
     if (isReady) {
-      setIsVisible(false);
-      const timeout = window.setTimeout(() => setShouldRender(false), 850);
-      return () => window.clearTimeout(timeout);
+      if (!visibleSinceRef.current) {
+        visibleSinceRef.current = performance.now();
+      }
+
+      const elapsed = performance.now() - visibleSinceRef.current;
+      const remaining = Math.max(MIN_VISIBLE_DURATION_MS - elapsed, 0);
+
+      const hideTimer = window.setTimeout(() => setIsVisible(false), remaining);
+      const unmountTimer = window.setTimeout(
+        () => setShouldRender(false),
+        remaining + 850
+      );
+
+      return () => {
+        window.clearTimeout(hideTimer);
+        window.clearTimeout(unmountTimer);
+      };
     }
 
-    setShouldRender(true);
-    const frame = window.requestAnimationFrame(() => setIsVisible(true));
+    visibleSinceRef.current = performance.now();
+    const frame = window.requestAnimationFrame(() => {
+      setShouldRender(true);
+      setIsVisible(true);
+    });
     return () => window.cancelAnimationFrame(frame);
   }, [isReady]);
 
@@ -67,15 +85,13 @@ export const LoadingScreen = ({ isReady }: LoadingScreenProps) => {
           <span className="absolute inset-4 rounded-full border border-red-500/40 loading-rune-spin" />
           <span className="absolute inset-1 rounded-full border border-red-400/20 loading-rune-spin-reverse" />
           <span className="absolute inset-0 rounded-full bg-gradient-to-br from-red-500/10 via-transparent to-red-400/20" />
-          <div className="relative h-24 w-24 loading-sigil-glow">
             <Image
               src="/favicon.png"
-              alt="Dagor crest"
+              alt="Daggor crest"
               fill
               priority
               className="object-contain drop-shadow-[0_0_1.6rem_rgba(255,160,160,0.55)]"
             />
-          </div>
         </div>
 
         <div className="space-y-2">
