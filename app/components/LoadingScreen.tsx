@@ -14,13 +14,6 @@ interface LoadingScreenProps {
   isReady: boolean;
 }
 
-const emberPositions = [
-  { left: "15%", duration: 5200 },
-  { left: "35%", duration: 6400 },
-  { left: "62%", duration: 5600 },
-  { left: "78%", duration: 4800 },
-  { left: "50%", duration: 7000 },
-];
 
 export const LoadingScreen = ({ isReady }: LoadingScreenProps) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -38,21 +31,6 @@ export const LoadingScreen = ({ isReady }: LoadingScreenProps) => {
     return () => window.cancelAnimationFrame(frame);
   }, [isReady]);
 
-  const embers = useMemo(
-    () =>
-      emberPositions.map((ember, index) => (
-        <span
-          key={index}
-          className="absolute bottom-0 h-24 w-1 rounded-full bg-red-400/40 blur-[2px] loading-ember"
-          style={{
-            left: ember.left,
-            animationDuration: `${ember.duration}ms`,
-            animationDelay: `${index * 140}ms`,
-          }}
-        />
-      )),
-    []
-  );
 
   if (!shouldRender) {
     return null;
@@ -82,9 +60,6 @@ export const LoadingScreen = ({ isReady }: LoadingScreenProps) => {
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/30 to-black/80" />
 
-      <div className="absolute inset-0 pointer-events-none">
-        {embers}
-      </div>
 
       <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center text-neutral-100">
         <div className="relative flex h-40 w-40 items-center justify-center">
