@@ -190,6 +190,7 @@ interface DitheredWavesProps {
   disableAnimation: boolean;
   enableMouseInteraction: boolean;
   mouseRadius: number;
+  onReady?: () => void;
 }
 
 function DitheredWaves({
@@ -201,11 +202,13 @@ function DitheredWaves({
   pixelSize,
   disableAnimation,
   enableMouseInteraction,
-  mouseRadius
+  mouseRadius,
+  onReady
 }: DitheredWavesProps) {
   const mesh = useRef<THREE.Mesh | null>(null);
   const mouseRef = useRef(new THREE.Vector2());
   const { viewport, size, gl } = useThree();
+  const hasCalledReady = useRef(false);
 
   // Uniforms are created once and mutated in useFrame - this is the correct pattern for R3F shaders
   // Initial prop values are set here, then updated dynamically in useFrame
@@ -230,7 +233,16 @@ function DitheredWaves({
     if (res.x !== w || res.y !== h) {
       res.set(w, h);
     }
-  }, [size, gl, waveUniforms]);
+    
+    // Call onReady once when Canvas is initialized and first frame is ready
+    if (!hasCalledReady.current && w > 0 && h > 0) {
+      hasCalledReady.current = true;
+      // Use requestAnimationFrame to ensure the first frame has rendered
+      requestAnimationFrame(() => {
+        onReady?.();
+      });
+    }
+  }, [size, gl, waveUniforms, onReady]);
 
   const prevColor = useRef([...waveColor]);
   useFrame(({ clock }) => {
@@ -302,7 +314,8 @@ export default function Dither({
   pixelSize = 2,
   disableAnimation = false,
   enableMouseInteraction = true,
-  mouseRadius = 1
+  mouseRadius = 1,
+  onReady
 }: Partial<DitheredWavesProps>) {
   return (
     <Canvas
@@ -321,6 +334,7 @@ export default function Dither({
         disableAnimation={disableAnimation}
         enableMouseInteraction={enableMouseInteraction}
         mouseRadius={mouseRadius}
+        onReady={onReady}
       />
     </Canvas>
   );

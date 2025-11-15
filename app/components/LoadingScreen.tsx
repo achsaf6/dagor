@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const DitherBackground = dynamic(() => import("@/components/Dither"), {
@@ -13,11 +13,12 @@ interface LoadingScreenProps {
   isReady: boolean;
 }
 
-const MIN_VISIBLE_DURATION_MS = 5000;
+const MIN_VISIBLE_DURATION_MS = 10000;
 
 export const LoadingScreen = ({ isReady }: LoadingScreenProps) => {
   const [isVisible, setIsVisible] = useState(true);
   const [shouldRender, setShouldRender] = useState(true);
+  const [isDitherReady, setIsDitherReady] = useState(false);
   const visibleSinceRef = useRef<number>(0);
 
   useEffect(() => {
@@ -63,23 +64,32 @@ export const LoadingScreen = ({ isReady }: LoadingScreenProps) => {
       )}
     >
       <div className="absolute inset-0">
-        <DitherBackground
-          waveSpeed={0.045}
-          waveFrequency={2.8}
-          waveAmplitude={0.32}
-          waveColor={[0.72, 0.12, 0.12]}
-          colorNum={5}
-          pixelSize={1.8}
-          disableAnimation={false}
-          enableMouseInteraction={false}
-          mouseRadius={1.2}
-        />
+        <Suspense fallback={null}>
+          <DitherBackground
+            waveSpeed={0.045}
+            waveFrequency={2.8}
+            waveAmplitude={0.32}
+            waveColor={[0.72, 0.12, 0.12]}
+            colorNum={5}
+            pixelSize={1.8}
+            disableAnimation={false}
+            enableMouseInteraction={false}
+            mouseRadius={1.2}
+            onReady={() => setIsDitherReady(true)}
+          />
+        </Suspense>
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/30 to-black/80" />
 
 
-      <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center text-neutral-100">
+      <div 
+        className={cn(
+          "relative z-10 flex flex-col items-center gap-8 px-6 text-center text-neutral-100",
+          "transition-opacity duration-300",
+          isDitherReady ? "opacity-100" : "opacity-0"
+        )}
+      >
         <div className="relative flex h-40 w-40 items-center justify-center">
           <span className="absolute inset-0 rounded-full border border-red-500/30 bg-red-900/40 blur-3xl" />
           <span className="absolute inset-4 rounded-full border border-red-500/40 loading-rune-spin" />
