@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MapSettings } from "./MapSettings";
+import { MapSettings } from "./settingcomponents/MapSettings";
 import { TokenPicker } from "./TokenPicker";
 import { BattlemapManager } from "./BattlemapManager";
+import { GridData } from "../utils/gridData";
 
 interface SidebarToolbarProps {
   gridScale: number;
@@ -17,6 +18,7 @@ interface SidebarToolbarProps {
   onSquareToolLockToggle: () => void;
   isSquareToolActive: boolean;
   isSquareToolLocked: boolean;
+  gridData: GridData;
 }
 
 export const SidebarToolbar = ({
@@ -31,6 +33,7 @@ export const SidebarToolbar = ({
   onSquareToolLockToggle,
   isSquareToolActive,
   isSquareToolLocked,
+  gridData,
 }: SidebarToolbarProps) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMapManagerOpen, setIsMapManagerOpen] = useState(false);
@@ -115,6 +118,7 @@ export const SidebarToolbar = ({
               gridOffsetX={gridOffsetX}
               gridOffsetY={gridOffsetY}
               onGridOffsetChange={onGridOffsetChange}
+              gridData={gridData}
             />
           </div>
         )}

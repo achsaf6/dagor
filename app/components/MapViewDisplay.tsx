@@ -345,6 +345,7 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
         onSquareToolLockToggle={handleSquareToolLockToggle}
         isSquareToolActive={isSquareToolActive}
         isSquareToolLocked={isSquareToolLocked}
+        gridData={effectiveGridData}
       />
       <MapImage onLoad={updateBounds} src={currentBattlemap?.mapPath ?? undefined} />
       <CoverManager

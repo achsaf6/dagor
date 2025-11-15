@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { GridSizeSlider } from "./GridSizeSlider";
 import { GridOffsetJoystick } from "./GridOffsetJoystick";
-import { useBattlemap } from "../providers/BattlemapProvider";
+import { HorizontalSquaresInput } from "./SquaresInput";
+import { useBattlemap } from "../../providers/BattlemapProvider";
+import { GridData } from "../../utils/gridData";
 
 interface MapSettingsProps {
   gridScale: number;
@@ -11,6 +13,7 @@ interface MapSettingsProps {
   gridOffsetX: number;
   gridOffsetY: number;
   onGridOffsetChange: (x: number, y: number) => void;
+  gridData: GridData;
 }
 
 export const MapSettings = ({
@@ -19,6 +22,7 @@ export const MapSettings = ({
   gridOffsetX,
   gridOffsetY,
   onGridOffsetChange,
+  gridData,
 }: MapSettingsProps) => {
   const {
     currentBattlemap,
@@ -59,6 +63,13 @@ export const MapSettings = ({
           onChange={onGridScaleChange}
         />
       </div>
+
+      {/* Horizontal Squares Input */}
+      <HorizontalSquaresInput
+        gridScale={gridScale}
+        onGridScaleChange={onGridScaleChange}
+        gridData={gridData}
+      />
 
       {/* Grid Offset Joystick */}
       <div className="mb-4">

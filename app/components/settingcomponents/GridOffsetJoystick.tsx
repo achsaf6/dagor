@@ -18,7 +18,10 @@ export const GridOffsetJoystick = ({
   stepSize = 0.01,
 }: GridOffsetJoystickProps) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [editingField, setEditingField] = useState<"x" | "y" | null>(null);
+  const [editValue, setEditValue] = useState("");
   const joystickRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -119,6 +122,60 @@ export const GridOffsetJoystick = ({
     [offsetX, offsetY, onChange, maxOffset, stepSize]
   );
 
+  // Handle double-click to edit
+  const handleDoubleClick = useCallback(
+    (field: "x" | "y") => {
+      setEditingField(field);
+      setEditValue(field === "x" ? offsetX.toFixed(0) : offsetY.toFixed(0));
+    },
+    [offsetX, offsetY]
+  );
+
+  // Handle input change
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditValue(e.target.value);
+  }, []);
+
+  // Handle input submission
+  const handleInputSubmit = useCallback(() => {
+    if (editingField === null) return;
+
+    const numValue = parseFloat(editValue);
+    if (!isNaN(numValue)) {
+      const clampedValue = Math.max(-maxOffset, Math.min(maxOffset, numValue));
+      if (editingField === "x") {
+        onChange(clampedValue, offsetY);
+      } else {
+        onChange(offsetX, clampedValue);
+      }
+    }
+    setEditingField(null);
+    setEditValue("");
+  }, [editingField, editValue, maxOffset, offsetX, offsetY, onChange]);
+
+  // Handle input key down
+  const handleInputKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleInputSubmit();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setEditingField(null);
+        setEditValue("");
+      }
+    },
+    [handleInputSubmit]
+  );
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editingField && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingField]);
+
   // Convert pixel offset to normalized position (-1 to 1)
   const normalizedX = Math.max(-1, Math.min(1, offsetX / maxOffset));
   const normalizedY = Math.max(-1, Math.min(1, offsetY / maxOffset));
@@ -176,8 +233,52 @@ export const GridOffsetJoystick = ({
         />
       </div>
       <div className="flex justify-between text-xs text-gray-400 mt-2">
-        <span>X: {offsetX.toFixed(0)}px</span>
-        <span>Y: {offsetY.toFixed(0)}px</span>
+        {editingField === "x" ? (
+          <span className="flex items-center gap-1">
+            X:{" "}
+            <input
+              ref={inputRef}
+              type="text"
+              value={editValue}
+              onChange={handleInputChange}
+              onBlur={handleInputSubmit}
+              onKeyDown={handleInputKeyDown}
+              className="w-4 px-1 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-white/50"
+              style={{ fontSize: "inherit" }}
+            />
+            px
+          </span>
+        ) : (
+          <span
+            onDoubleClick={() => handleDoubleClick("x")}
+            className="cursor-pointer hover:text-white transition-colors"
+          >
+            X: {offsetX.toFixed(0)}px
+          </span>
+        )}
+        {editingField === "y" ? (
+          <span className="flex items-center gap-1">
+            Y:{" "}
+            <input
+              ref={inputRef}
+              type="text"
+              value={editValue}
+              onChange={handleInputChange}
+              onBlur={handleInputSubmit}
+              onKeyDown={handleInputKeyDown}
+              className="w-4 px-1 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-white/50"
+              style={{ fontSize: "inherit" }}
+            />
+            px
+          </span>
+        ) : (
+          <span
+            onDoubleClick={() => handleDoubleClick("y")}
+            className="cursor-pointer hover:text-white transition-colors"
+          >
+            Y: {offsetY.toFixed(0)}px
+          </span>
+        )}
       </div>
     </div>
   );
