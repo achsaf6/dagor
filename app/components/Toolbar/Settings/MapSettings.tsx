@@ -4,8 +4,8 @@ import { useState } from "react";
 import { GridSizeSlider } from "./GridSizeSlider";
 import { GridOffsetJoystick } from "./GridOffsetJoystick";
 import { HorizontalSquaresInput } from "./SquaresInput";
-import { useBattlemap } from "../../providers/BattlemapProvider";
-import { GridData } from "../../utils/gridData";
+import { useBattlemap } from "../../../providers/BattlemapProvider";
+import { GridData } from "../../../utils/gridData";
 
 interface MapSettingsProps {
   gridScale: number;

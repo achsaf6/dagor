@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { DEFAULT_BATTLEMAP_MAP_PATH } from "../../lib/defaultBattlemap";
+import { DEFAULT_BATTLEMAP_MAP_PATH } from "../../../lib/defaultBattlemap";
 
 interface MapImageProps {
   onLoad?: () => void;

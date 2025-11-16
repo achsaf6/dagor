@@ -1,5 +1,5 @@
-import { ImageBounds } from '../types';
-import { useCoordinateMapper } from '../hooks/useCoordinateMapper';
+import { ImageBounds } from '../../types';
+import { useCoordinateMapper } from '../../hooks/useCoordinateMapper';
 
 interface GridLinesProps {
   gridData: {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { GridData } from "../../utils/gridData";
+import { GridData } from "../../../utils/gridData";
 
 interface HorizontalSquaresInputProps {
   gridScale: number;

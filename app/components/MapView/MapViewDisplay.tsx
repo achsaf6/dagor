@@ -7,18 +7,18 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useSocket } from "../hooks/useSocket";
-import { useImageBounds } from "../hooks/useImageBounds";
-import { useCoordinateMapper } from "../hooks/useCoordinateMapper";
+import { useSocket } from "../../hooks/useSocket";
+import { useImageBounds } from "../../hooks/useImageBounds";
+import { useCoordinateMapper } from "../../hooks/useCoordinateMapper";
 import { MapImage } from "./MapImage";
-import { TokenManager } from "./TokenManager";
+import { TokenManager } from "../Token/TokenManager";
 import { GridLines } from "./GridLines";
-import { SidebarToolbar } from "./SidebarToolbar";
-import { CoverManager } from "./CoverManager";
-import { Position } from "../types";
-import { snapToGridCenter } from "../utils/coordinates";
-import { DEFAULT_GRID_DATA } from "../utils/gridData";
-import { useBattlemap } from "../providers/BattlemapProvider";
+import { SidebarToolbar } from "../Toolbar/SidebarToolbar";
+import { CoverManager } from "../Toolbar/CoverManager";
+import { Position } from "../../types";
+import { snapToGridCenter } from "../../utils/coordinates";
+import { DEFAULT_GRID_DATA } from "../../utils/gridData";
+import { useBattlemap } from "../../providers/BattlemapProvider";
 
 interface MapViewDisplayProps {
   onReadyChange?: (isReady: boolean) => void;

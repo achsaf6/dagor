@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { UserToken } from "./UserToken";
-import { usePosition } from "../hooks/usePosition";
-import { ImageBounds, Position } from "../types";
+import { usePosition } from "../../hooks/usePosition";
+import { ImageBounds, Position } from "../../types";
 
 interface TransformConfig {
   scale: number;

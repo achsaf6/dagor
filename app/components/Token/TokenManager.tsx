@@ -1,4 +1,4 @@
-import { User, ImageBounds, Position } from "../types";
+import { User, ImageBounds, Position } from "../../types";
 import { DraggableToken } from "./DraggableToken";
 
 interface TransformConfig {

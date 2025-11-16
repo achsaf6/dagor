@@ -1,10 +1,10 @@
-import { Position, ImageBounds } from "../types";
+import { Position, ImageBounds } from "../../types";
 import {
   getViewportPosition,
   getViewportSize,
   positionToImageRelative,
-} from "../utils/coordinates";
-import { useCoordinateMapper } from "../hooks/useCoordinateMapper";
+} from "../../utils/coordinates";
+import { useCoordinateMapper } from "../../hooks/useCoordinateMapper";
 
 interface TokenProps {
   position: Position;

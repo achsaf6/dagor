@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MapSettings } from "./settingcomponents/MapSettings";
+import { MapSettings } from "./Settings/MapSettings";
 import { TokenPicker } from "./TokenPicker";
 import { BattlemapManager } from "./BattlemapManager";
-import { GridData } from "../utils/gridData";
+import { GridData } from "../../utils/gridData";
 
 interface SidebarToolbarProps {
   gridScale: number;

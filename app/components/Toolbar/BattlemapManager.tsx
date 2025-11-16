@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useBattlemap } from "../providers/BattlemapProvider";
+import { useBattlemap } from "../../providers/BattlemapProvider";
 
 interface BattlemapManagerProps {
   onClose?: () => void;

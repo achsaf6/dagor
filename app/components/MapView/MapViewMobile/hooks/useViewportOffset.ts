@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
-import { ImageBounds } from "../../../types";
-import { CoordinateMapper } from "../../../hooks/useCoordinateMapper";
+import { ImageBounds } from "../../../../types";
+import { CoordinateMapper } from "../../../../hooks/useCoordinateMapper";
 import { ViewportOffset } from "../types";
 
 interface UseViewportOffsetParams {

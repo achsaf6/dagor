@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useCallback, useRef, useState } from "react";
-import { Cover, ImageBounds } from "../types";
-import { useCoordinateMapper } from "../hooks/useCoordinateMapper";
+import { Cover, ImageBounds } from "../../types";
+import { useCoordinateMapper } from "../../hooks/useCoordinateMapper";
 
 interface DraggableCoverProps {
   cover: Cover;

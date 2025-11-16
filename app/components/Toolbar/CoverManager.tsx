@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Cover, ImageBounds } from "../types";
+import { Cover, ImageBounds } from "../../types";
 import { DraggableCover } from "./DraggableCover";
 
 interface CoverManagerProps {

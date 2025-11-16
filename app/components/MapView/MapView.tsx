@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useMemo, useState } from "react";
-import { useViewMode } from "../hooks/useViewMode";
+import { useViewMode } from "../../hooks/useViewMode";
 import { MapViewDisplay } from "./MapViewDisplay";
 import { MapViewMobile } from "./MapViewMobile";
 import { LoadingScreen } from "./LoadingScreen";

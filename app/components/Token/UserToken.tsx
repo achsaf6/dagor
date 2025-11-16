@@ -1,4 +1,4 @@
-import { Position, ImageBounds } from "../types";
+import { Position, ImageBounds } from "../../types";
 import { Token } from "./Token";
 
 interface UserTokenProps {

@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useRef, useCallback, useEffect, useMemo } from "react";
-import { useSocket } from "../../hooks/useSocket";
-import { useImageBounds } from "../../hooks/useImageBounds";
-import { useViewMode } from "../../hooks/useViewMode";
-import { useCoordinateMapper } from "../../hooks/useCoordinateMapper";
+import { useSocket } from "../../../hooks/useSocket";
+import { useImageBounds } from "../../../hooks/useImageBounds";
+import { useViewMode } from "../../../hooks/useViewMode";
+import { useCoordinateMapper } from "../../../hooks/useCoordinateMapper";
 import { MapImage } from "../MapImage";
-import { DraggableToken } from "../DraggableToken";
-import { TokenManager } from "../TokenManager";
-import { CoverManager } from "../CoverManager";
+import { DraggableToken } from "../../Token/DraggableToken";
+import { TokenManager } from "../../Token/TokenManager";
+import { CoverManager } from "../../Toolbar/CoverManager";
 import { GridLines } from "../GridLines";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { useViewportOffset } from "./hooks/useViewportOffset";
@@ -16,8 +16,8 @@ import { useAutoCenter } from "./hooks/useAutoCenter";
 import { useTransform } from "./hooks/useTransform";
 import { useHammerGestures } from "./hooks/useHammerGestures";
 import { TransformConfig } from "./types";
-import { DEFAULT_GRID_DATA } from "../../utils/gridData";
-import { useBattlemap } from "../../providers/BattlemapProvider";
+import { DEFAULT_GRID_DATA } from "../../../utils/gridData";
+import { useBattlemap } from "../../../providers/BattlemapProvider";
 
 interface MapViewMobileProps {
   onReadyChange?: (isReady: boolean) => void;
