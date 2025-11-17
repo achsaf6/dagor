@@ -1,4 +1,11 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+  useImperativeHandle,
+  useLayoutEffect,
+} from "react";
 import { useCharacter } from "@/app/providers/CharacterProvider";
 import { useViewMode } from "@/app/hooks/useViewMode";
 import { TokenSize } from "@/app/types";
@@ -36,12 +43,38 @@ export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps
     ref
   ) => {
     const { isMobile } = useViewMode();
+    const forwardedRef = useRef<HTMLDivElement | null>(null);
+    useImperativeHandle(ref, () => forwardedRef.current as HTMLDivElement | null, []);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [movementInput, setMovementInput] = useState<string>(movementValue);
     const [movementLocalError, setMovementLocalError] = useState<string | null>(null);
     const [uploadStatus, setUploadStatus] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [shouldFlipVertical, setShouldFlipVertical] = useState(false);
     const isUpdatingFromInputRef = useRef(false);
+    useLayoutEffect(() => {
+      const updatePlacement = () => {
+        if (!forwardedRef.current) {
+          setShouldFlipVertical(false);
+          return;
+        }
+        const anchor = forwardedRef.current.parentElement;
+        if (!anchor) {
+          setShouldFlipVertical(false);
+          return;
+        }
+        const rect = anchor.getBoundingClientRect();
+        const distanceToTop = rect.top;
+        const distanceToBottom = window.innerHeight - rect.bottom;
+        setShouldFlipVertical(distanceToBottom < distanceToTop);
+      };
+
+      updatePlacement();
+      window.addEventListener("resize", updatePlacement);
+      return () => {
+        window.removeEventListener("resize", updatePlacement);
+      };
+    }, []);
     const {
       character,
       hasSelectedCharacter,
@@ -167,11 +200,13 @@ export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps
 
     return (
       <div
-        ref={ref}
-        className="absolute left-1/2 top-full z-30 mt-2 w-48 rounded-lg border border-white/10 bg-gray-900/95 p-3 text-xs text-gray-100 shadow-2xl backdrop-blur-sm"
+        ref={forwardedRef}
+        className={`absolute left-1/2 z-30 w-48 rounded-lg border border-white/10 bg-gray-900/95 p-3 text-xs text-gray-100 shadow-2xl backdrop-blur-sm ${
+          shouldFlipVertical ? "bottom-full mb-2" : "top-full mt-2"
+        }`}
         style={{
           transform: `translate(-50%, 0) scale(${dropdownScale})`,
-          transformOrigin: "top center",
+          transformOrigin: shouldFlipVertical ? "bottom center" : "top center",
         }}
         onClick={(e) => {
           // Prevent clicks inside the menu from closing it
