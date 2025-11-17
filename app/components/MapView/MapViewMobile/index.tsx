@@ -30,9 +30,11 @@ export const MapViewMobile = ({ onReadyChange }: MapViewMobileProps) => {
     myUserId,
     myColor,
     myPosition,
+    myImageSrc,
     otherUsers,
     disconnectedUsers,
     updateTokenPosition,
+    updateTokenImage,
     removeToken,
   } = useSocket(false);
   const { imageBounds, updateBounds } = useImageBounds(containerRef);
@@ -266,6 +268,7 @@ export const MapViewMobile = ({ onReadyChange }: MapViewMobileProps) => {
               tokenId={myUserId}
               position={myPosition}
               color={myColor}
+              imageSrc={myImageSrc}
               imageBounds={imageBounds}
               worldMapWidth={worldMapWidth}
               worldMapHeight={worldMapHeight}
@@ -275,6 +278,24 @@ export const MapViewMobile = ({ onReadyChange }: MapViewMobileProps) => {
               gridOffsetY={gridOffsetY}
               isMounted={isMounted}
               onPositionUpdate={updateTokenPosition}
+              onImageUpload={async (tokenId: string, file: File) => {
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("tokenId", tokenId);
+                
+                const response = await fetch("/api/token-upload", {
+                  method: "POST",
+                  body: formData,
+                });
+                
+                if (!response.ok) {
+                  const error = await response.json();
+                  throw new Error(error.error || "Failed to upload image");
+                }
+                
+                const data = await response.json();
+                updateTokenImage(tokenId, data.publicUrl);
+              }}
               transform={transform as TransformConfig}
               onDragStateChange={handleDragStateChange}
               zIndex={20}
@@ -296,6 +317,24 @@ export const MapViewMobile = ({ onReadyChange }: MapViewMobileProps) => {
           myUserId={myUserId}
           onRemoveToken={removeToken}
           onPositionUpdate={updateTokenPosition}
+          onImageUpload={async (tokenId: string, file: File) => {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("tokenId", tokenId);
+            
+            const response = await fetch("/api/token-upload", {
+              method: "POST",
+              body: formData,
+            });
+            
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.error || "Failed to upload image");
+            }
+            
+            const data = await response.json();
+            updateTokenImage(tokenId, data.publicUrl);
+          }}
           transform={transform as TransformConfig}
           onDragStateChange={handleDragStateChange}
         />

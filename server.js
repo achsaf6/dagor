@@ -470,6 +470,7 @@ app.prepare().then(async () => {
         persistentUserId: userData.persistentUserId,
         color,
         position,
+        imageSrc: userData.imageSrc || null,
       });
 
       // Send all active users (excluding display mode users)
@@ -497,6 +498,7 @@ app.prepare().then(async () => {
             persistentUserId: userData.persistentUserId,
             color,
             position,
+            imageSrc: userData.imageSrc || null,
           });
         } else {
           // User reconnected - broadcast reconnection
@@ -505,6 +507,7 @@ app.prepare().then(async () => {
             persistentUserId: userData.persistentUserId,
             color,
             position,
+            imageSrc: userData.imageSrc || null,
           });
         }
       }
@@ -832,6 +835,23 @@ app.prepare().then(async () => {
       }
     });
 
+    // Handle token image updates
+    socket.on('token-image-update', (data) => {
+      const { tokenId, imageSrc } = data;
+      if (!tokenId) return;
+
+      // Find the target user
+      const targetUser = users.get(tokenId);
+      if (targetUser) {
+        targetUser.imageSrc = imageSrc || null;
+        // Broadcast to all clients (including sender) so everyone sees the update
+        io.emit('token-image-updated', {
+          userId: tokenId,
+          imageSrc: imageSrc || null,
+        });
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       const user = users.get(userId);
@@ -846,6 +866,7 @@ app.prepare().then(async () => {
           persistentUserId: persistentId,
           color: user.color,
           position: user.position,
+          imageSrc: user.imageSrc || null,
           disconnectedAt: Date.now(),
         };
 
@@ -858,6 +879,7 @@ app.prepare().then(async () => {
           persistentUserId: persistentId,
           color: user.color,
           position: user.position,
+          imageSrc: user.imageSrc || null,
         });
       } else if (displayUser) {
         // Clean up display mode user

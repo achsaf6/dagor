@@ -1,14 +1,12 @@
-import { forwardRef, useRef, useState, type ChangeEvent } from "react";
+import { forwardRef, useRef } from "react";
 
 interface TokenActionsMenuProps {
   movementInputId: string;
   movementValue: string;
   onMovementChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  uploadInputId: string;
-  onImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  avatarUrl: string | null;
-  onClearImage: () => void;
   dropdownScale: number;
+  onImageUpload?: (file: File) => Promise<void>;
+  isUploading?: boolean;
 }
 
 export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps>(
@@ -17,45 +15,48 @@ export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps
       movementInputId,
       movementValue,
       onMovementChange,
-      uploadInputId,
-      onImageUpload,
-      avatarUrl,
-      onClearImage,
       dropdownScale,
+      onImageUpload,
+      isUploading = false,
     },
     ref
   ) => {
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleAvatarButtonClick = () => {
-      console.log("TokenActionsMenu: avatar upload button clicked");
-      fileInputRef.current?.click();
-      console.log("TokenActionsMenu: completed upload");
-    };
-
-    const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-
-      if (file) {
-        console.log("TokenActionsMenu: image selected", {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        });
-        setSelectedFileName(file.name);
+      console.log("File selected:", file, "onImageUpload:", onImageUpload);
+      if (file && onImageUpload) {
+        try {
+          console.log("Calling onImageUpload with file:", file.name);
+          await onImageUpload(file);
+          console.log("Upload completed successfully");
+        } catch (error) {
+          console.error("Failed to upload image:", error);
+        } finally {
+          // Reset the input so the same file can be selected again
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+        }
       } else {
-        console.log("TokenActionsMenu: image selection cleared");
-        setSelectedFileName(null);
+        console.warn("File or onImageUpload missing:", { file: !!file, onImageUpload: !!onImageUpload });
       }
-
-      onImageUpload(event);
     };
 
-    const handleClearImage = () => {
-      console.log("TokenActionsMenu: avatar cleared");
-      setSelectedFileName(null);
-      onClearImage();
+    const handleUploadClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Upload button clicked, fileInputRef:", fileInputRef.current);
+      // Use setTimeout to ensure the click happens after event propagation
+      setTimeout(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.click();
+          console.log("File input clicked");
+        } else {
+          console.error("File input ref is null");
+        }
+      }, 0);
     };
 
     return (
@@ -66,62 +67,50 @@ export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps
           transform: `translate(-50%, 0) scale(${dropdownScale})`,
           transformOrigin: "top center",
         }}
+        onClick={(e) => {
+          // Prevent clicks inside the menu from closing it
+          e.stopPropagation();
+        }}
       >
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <label
-            htmlFor={movementInputId}
-            className="text-[11px] font-semibold uppercase tracking-wide text-gray-300"
-          >
-            Movement
-          </label>
-          <input
-            id={movementInputId}
-            type="number"
-            inputMode="numeric"
-            value={movementValue}
-            onChange={onMovementChange}
-            className="w-20 rounded-md border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor={uploadInputId}
-            className="text-[11px] font-semibold uppercase tracking-wide text-gray-300"
-          >
-            Avatar
-          </label>
-          <input
-            ref={fileInputRef}
-            id={uploadInputId}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleImageUpload}
-          />
-          <button
-            type="button"
-            onClick={handleAvatarButtonClick}
-            className="rounded-md border border-gray-600 bg-gray-800 px-3 py-1 text-[11px] font-semibold uppercase text-gray-100 transition hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            Select Image
-          </button>
-          <span className="text-[11px] text-gray-400">
-            {selectedFileName
-              ? selectedFileName
-              : avatarUrl
-                ? "Avatar already set"
-                : "No file chosen"}
-          </span>
-          {avatarUrl && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <label
+              htmlFor={movementInputId}
+              className="text-[11px] font-semibold uppercase tracking-wide text-gray-300"
+            >
+              Movement
+            </label>
+            <input
+              id={movementInputId}
+              type="number"
+              inputMode="numeric"
+              value={movementValue}
+              onChange={onMovementChange}
+              className="w-20 rounded-md border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label
+              className="text-[11px] font-semibold uppercase tracking-wide text-gray-300"
+            >
+              Image
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
             <button
               type="button"
-              className="text-left text-[11px] font-medium text-red-400 underline"
-              onClick={handleClearImage}
+              onClick={handleUploadClick}
+              disabled={isUploading}
+              className="w-full rounded-md border border-gray-600 bg-gray-800 px-2 py-1.5 text-xs text-gray-100 transition-colors hover:bg-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Remove image
+              {isUploading ? "Uploading..." : "Upload Image"}
             </button>
-          )}
+          </div>
         </div>
       </div>
     );

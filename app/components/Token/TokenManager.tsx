@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { User, ImageBounds, Position } from "../../types";
 import { DraggableToken } from "./DraggableToken";
 
@@ -27,6 +28,7 @@ interface TokenManagerProps {
   myUserId?: string | null;
   onRemoveToken?: (persistentUserId: string) => void;
   onPositionUpdate: (tokenId: string, position: Position) => void;
+  onImageUpload?: (tokenId: string, file: File) => Promise<void>;
   transform?: TransformConfig;
   onDragStateChange?: (tokenId: string, isDragging: boolean) => void;
 }
@@ -46,9 +48,15 @@ export const TokenManager = ({
   myUserId,
   onRemoveToken,
   onPositionUpdate,
+  onImageUpload,
   transform,
   onDragStateChange,
 }: TokenManagerProps) => {
+  // Debug: log onImageUpload prop (must be before early return)
+  useEffect(() => {
+    console.log("TokenManager: onImageUpload prop:", !!onImageUpload, typeof onImageUpload);
+  }, [onImageUpload]);
+  
   if (!imageBounds) return null;
 
 
@@ -78,6 +86,7 @@ export const TokenManager = ({
             tokenId={user.id}
             position={user.position}
             color={user.color}
+            imageSrc={user.imageSrc}
             imageBounds={imageBounds}
             worldMapWidth={worldMapWidth}
             worldMapHeight={worldMapHeight}
@@ -89,6 +98,7 @@ export const TokenManager = ({
             onContextMenu={isDisplay ? (e) => handleTokenContextMenu(e, persistentUserId) : undefined}
             title={isDisplay ? "Right-click to remove" : undefined}
             onPositionUpdate={onPositionUpdate}
+            onImageUpload={onImageUpload}
             transform={transform}
             onDragStateChange={onDragStateChange}
             isInteractive={isTokenInteractive}
@@ -107,6 +117,7 @@ export const TokenManager = ({
             tokenId={user.id}
             position={user.position}
             color={user.color}
+            imageSrc={user.imageSrc}
             imageBounds={imageBounds}
             worldMapWidth={worldMapWidth}
             worldMapHeight={worldMapHeight}
@@ -119,6 +130,7 @@ export const TokenManager = ({
             onContextMenu={isDisplay ? (e) => handleTokenContextMenu(e, user.id) : undefined}
             title={isDisplay ? "Disconnected - Right-click to remove" : "Disconnected"}
             onPositionUpdate={onPositionUpdate}
+            onImageUpload={onImageUpload}
             transform={transform}
             onDragStateChange={onDragStateChange}
             isInteractive={isTokenInteractive}

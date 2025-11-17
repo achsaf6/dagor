@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Position, ImageBounds } from "../../types";
 import {
   getViewportPosition,
@@ -58,6 +58,43 @@ export const Token = ({
     worldMapWidth,
     worldMapHeight
   );
+
+  // Track the displayed image source separately to ensure seamless transitions
+  const [displayedImageSrc, setDisplayedImageSrc] = useState<string | null | undefined>(imageSrc);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+
+  // Preload new images before switching to them
+  useEffect(() => {
+    // If imageSrc hasn't changed, no need to do anything
+    if (imageSrc === displayedImageSrc) {
+      return;
+    }
+
+    // If imageSrc is being cleared (set to null), update immediately
+    if (!imageSrc) {
+      setDisplayedImageSrc(null);
+      setIsImageLoading(false);
+      return;
+    }
+
+    // If we're switching from one image to another, preload the new one
+    setIsImageLoading(true);
+    const img = new Image();
+    
+    img.onload = () => {
+      // Image loaded successfully, safe to switch
+      setDisplayedImageSrc(imageSrc);
+      setIsImageLoading(false);
+    };
+    
+    img.onerror = () => {
+      // Image failed to load, still switch to show error state
+      setDisplayedImageSrc(imageSrc);
+      setIsImageLoading(false);
+    };
+    
+    img.src = imageSrc;
+  }, [imageSrc, displayedImageSrc]);
 
   if (!imageBounds) return null;
 
@@ -152,11 +189,11 @@ export const Token = ({
         width: `${tokenSize}%`,
         aspectRatio: "1 / 1",
         transform: "translate(-50%, -50%)",
-        backgroundColor: imageSrc ? undefined : color,
-        backgroundImage: imageSrc ? `url(${imageSrc})` : undefined,
-        backgroundSize: imageSrc ? "cover" : undefined,
-        backgroundPosition: imageSrc ? "center" : undefined,
-        backgroundRepeat: imageSrc ? "no-repeat" : undefined,
+        backgroundColor: displayedImageSrc ? undefined : color,
+        backgroundImage: displayedImageSrc ? `url(${displayedImageSrc})` : undefined,
+        backgroundSize: displayedImageSrc ? "cover" : undefined,
+        backgroundPosition: displayedImageSrc ? "center" : undefined,
+        backgroundRepeat: displayedImageSrc ? "no-repeat" : undefined,
         touchAction: isInteractive ? "none" : "auto",
         opacity: opacity,
         userSelect: "none",

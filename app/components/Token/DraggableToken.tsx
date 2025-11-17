@@ -16,6 +16,7 @@ interface DraggableTokenProps {
   tokenId: string;
   position: Position;
   color: string;
+  imageSrc?: string | null;
   imageBounds: ImageBounds | null;
   worldMapWidth?: number;
   worldMapHeight?: number;
@@ -34,6 +35,7 @@ interface DraggableTokenProps {
   onClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   onPositionUpdate: (tokenId: string, position: Position) => void;
+  onImageUpload?: (tokenId: string, file: File) => Promise<void>;
   transform?: TransformConfig;
   onDragStateChange?: (tokenId: string, isDragging: boolean) => void;
   isInteractive?: boolean;
@@ -44,6 +46,7 @@ export const DraggableToken = ({
   tokenId,
   position,
   color,
+  imageSrc,
   imageBounds,
   worldMapWidth = 0,
   worldMapHeight = 0,
@@ -57,11 +60,25 @@ export const DraggableToken = ({
   onClick,
   onContextMenu,
   onPositionUpdate,
+  onImageUpload,
   transform,
   onDragStateChange,
   isInteractive = true,
   zIndex,
 }: DraggableTokenProps) => {
+  // Debug: log when onImageUpload prop changes
+  useEffect(() => {
+    console.log(`DraggableToken ${tokenId}: onImageUpload prop:`, !!onImageUpload, typeof onImageUpload);
+  }, [tokenId, onImageUpload]);
+  
+  // Use a ref to always get the latest onImageUpload value
+  const onImageUploadRef = useRef(onImageUpload);
+  // Update ref immediately on every render, not just in useEffect
+  onImageUploadRef.current = onImageUpload;
+  useEffect(() => {
+    console.log(`DraggableToken ${tokenId}: onImageUpload prop changed:`, !!onImageUpload, typeof onImageUpload);
+  }, [tokenId, onImageUpload]);
+  
   // Track initial mouse position to distinguish clicks from drags
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const hasMovedRef = useRef(false);
@@ -72,10 +89,9 @@ export const DraggableToken = ({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [movementValue, setMovementValue] = useState<string>("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const baseInputId = useId();
   const movementInputId = `${baseInputId}-movement`;
-  const uploadInputId = `${baseInputId}-upload`;
 
   // Create a callback that updates this specific token's position
   const handlePositionUpdate = useCallback(
@@ -236,6 +252,8 @@ export const DraggableToken = ({
     [isInteractive, isMenuOpen, startLongPressTimer, handleTouchStart]
   );
 
+
+
   // Notify parent of drag state changes
   useEffect(() => {
     if (onDragStateChange) {
@@ -320,22 +338,35 @@ export const DraggableToken = ({
     setMovementValue(event.target.value);
   }, []);
 
-  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
+  // Use ref to always get latest onImageUpload value, avoiding stale closures
+  const handleImageUpload = useCallback(async (file: File) => {
+    // Use ref to get the latest value in case prop changes
+    const currentOnImageUpload = onImageUploadRef.current;
+    console.log("handleImageUpload called with:", { 
+      tokenId, 
+      file: file.name, 
+      onImageUpload: !!currentOnImageUpload,
+      onImageUploadType: typeof currentOnImageUpload,
+      onImageUploadProp: !!onImageUpload
+    });
+    if (!currentOnImageUpload) {
+      console.warn("onImageUpload is not defined for token:", tokenId);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatarUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
-  }, []);
-
-  const handleClearImage = useCallback(() => {
-    setAvatarUrl(null);
-  }, []);
+    setIsUploading(true);
+    setIsMenuOpen(false); // Close the dropdown when upload starts
+    try {
+      console.log("Calling onImageUpload prop with tokenId and file");
+      await currentOnImageUpload(tokenId, file);
+      console.log("onImageUpload completed successfully");
+    } catch (error) {
+      console.error("Failed to upload token image:", error);
+      throw error; // Re-throw so TokenActionsMenu can handle it
+    } finally {
+      setIsUploading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenId]);
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -380,7 +411,7 @@ export const DraggableToken = ({
     <UserToken
       position={position}
       color={color}
-      imageSrc={avatarUrl}
+      imageSrc={imageSrc}
       imageBounds={imageBounds}
       worldMapWidth={worldMapWidth}
       worldMapHeight={worldMapHeight}
@@ -402,11 +433,9 @@ export const DraggableToken = ({
           movementInputId={movementInputId}
           movementValue={movementValue}
           onMovementChange={handleMovementChange}
-          uploadInputId={uploadInputId}
-          onImageUpload={handleImageUpload}
-          avatarUrl={avatarUrl}
-          onClearImage={handleClearImage}
           dropdownScale={dropdownScale}
+          onImageUpload={handleImageUpload}
+          isUploading={isUploading}
         />
       )}
     </UserToken>

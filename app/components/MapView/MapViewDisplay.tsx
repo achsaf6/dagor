@@ -31,6 +31,7 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
     otherUsers,
     disconnectedUsers,
     updateTokenPosition,
+    updateTokenImage,
     removeToken,
     addToken,
   } = useSocket(true);
@@ -382,6 +383,24 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
         myUserId={myUserId}
         onRemoveToken={removeToken}
         onPositionUpdate={updateTokenPosition}
+        onImageUpload={async (tokenId: string, file: File) => {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("tokenId", tokenId);
+          
+          const response = await fetch("/api/token-upload", {
+            method: "POST",
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || "Failed to upload image");
+          }
+          
+          const data = await response.json();
+          updateTokenImage(tokenId, data.publicUrl);
+        }}
         transform={transform}
         onDragStateChange={() => {}}
       />

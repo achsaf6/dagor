@@ -10,12 +10,14 @@ interface UseSocketReturn {
   myUserId: string | null;
   myColor: string;
   myPosition: Position;
+  myImageSrc: string | null;
   otherUsers: Map<string, User>;
   disconnectedUsers: Map<string, User>;
   covers: Map<string, Cover>;
   socket: Socket | null;
   updateMyPosition: (position: Position) => void;
   updateTokenPosition: (tokenId: string, position: Position) => void;
+  updateTokenImage: (tokenId: string, imageSrc: string | null) => void;
   removeToken: (persistentUserId: string) => void;
   addToken: (color: string, position?: Position) => void;
   addCover: (cover: Omit<Cover, "id">) => void;
@@ -27,6 +29,7 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [myColor, setMyColor] = useState<string>("#ef4444");
   const [myPosition, setMyPosition] = useState<Position>({ x: 50, y: 50 });
+  const [myImageSrc, setMyImageSrc] = useState<string | null>(null);
   const [otherUsers, setOtherUsers] = useState<Map<string, User>>(new Map());
   const [disconnectedUsers, setDisconnectedUsers] = useState<Map<string, User>>(new Map());
   const [covers, setCovers] = useState<Map<string, Cover>>(new Map());
@@ -147,11 +150,13 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
         userId: string;
         color: string;
         position: { x: number; y: number };
+        imageSrc?: string | null;
       }) => {
         setMyUserId(data.userId);
         myUserIdRef.current = data.userId;
         setMyColor(data.color);
         setMyPosition(data.position);
+        setMyImageSrc(data.imageSrc || null);
       }
     );
 
@@ -166,6 +171,7 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
             id: user.id,
             color: user.color,
             position: user.position,
+            imageSrc: user.imageSrc || null,
           };
           if (user.persistentUserId) {
             userData.persistentUserId = user.persistentUserId;
@@ -179,13 +185,14 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
     // Handle new user joining
     socketInstance.on(
       "user-joined",
-      (data: { userId: string; persistentUserId?: string; color: string; position: { x: number; y: number } }) => {
+      (data: { userId: string; persistentUserId?: string; color: string; position: { x: number; y: number }; imageSrc?: string | null }) => {
         setOtherUsers((prev) => {
           const updated = new Map(prev);
           const userData: UserWithPersistentId = {
             id: data.userId,
             color: data.color,
             position: data.position,
+            imageSrc: data.imageSrc || null,
           };
           if (data.persistentUserId) {
             userData.persistentUserId = data.persistentUserId;
@@ -231,7 +238,7 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
     });
 
     // Handle user disconnecting (moved to disconnected state)
-    socketInstance.on("user-disconnected", (data: { userId: string; persistentUserId: string; color: string; position: { x: number; y: number } }) => {
+    socketInstance.on("user-disconnected", (data: { userId: string; persistentUserId: string; color: string; position: { x: number; y: number }; imageSrc?: string | null }) => {
       // Remove from active users
       setOtherUsers((prev) => {
         const updated = new Map(prev);
@@ -244,6 +251,7 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
               id: data.persistentUserId,
               color: user.color,
               position: user.position,
+              imageSrc: user.imageSrc || data.imageSrc || null,
             });
             return updatedDisconnected;
           });
@@ -261,6 +269,7 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
         persistentUserId: string;
         color: string;
         position: { x: number; y: number };
+        imageSrc?: string | null;
       }) => {
         // Remove from disconnected users
         setDisconnectedUsers((prev) => {
@@ -275,6 +284,7 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
             id: data.userId,
             color: data.color,
             position: data.position,
+            imageSrc: data.imageSrc || null,
             persistentUserId: data.persistentUserId,
           };
           updated.set(data.userId, userData);
@@ -319,16 +329,56 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
     // Handle new token added
     socketInstance.on(
       "token-added",
-      (data: { userId: string; persistentUserId: string; color: string; position: { x: number; y: number } }) => {
+      (data: { userId: string; persistentUserId: string; color: string; position: { x: number; y: number }; imageSrc?: string | null }) => {
         const userData: UserWithPersistentId = {
           id: data.userId,
           color: data.color,
           position: data.position,
+          imageSrc: data.imageSrc || null,
           persistentUserId: data.persistentUserId,
         };
         setOtherUsers((prev) => {
           const updated = new Map(prev);
           updated.set(data.userId, userData);
+          return updated;
+        });
+      }
+    );
+
+    // Handle token image update
+    socketInstance.on(
+      "token-image-updated",
+      (data: { userId: string; imageSrc: string | null }) => {
+        const currentMyUserId = myUserIdRef.current || socketInstance.id;
+        // Update our own image if it's our token
+        if (data.userId === currentMyUserId) {
+          setMyImageSrc(data.imageSrc);
+        } else {
+          // Update other users
+          setOtherUsers((prev) => {
+            const updated = new Map(prev);
+            const user = updated.get(data.userId);
+            if (user) {
+              updated.set(data.userId, {
+                ...user,
+                imageSrc: data.imageSrc,
+              });
+            }
+            return updated;
+          });
+        }
+        // Also update disconnected users if applicable
+        setDisconnectedUsers((prev) => {
+          const updated = new Map(prev);
+          for (const [key, user] of updated.entries()) {
+            const userWithPersistentId = user as UserWithPersistentId;
+            if (userWithPersistentId.persistentUserId === data.userId || user.id === data.userId) {
+              updated.set(key, {
+                ...user,
+                imageSrc: data.imageSrc,
+              });
+            }
+          }
           return updated;
         });
       }
@@ -425,6 +475,35 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
     }
   };
 
+  const updateTokenImage = (tokenId: string, imageSrc: string | null) => {
+    // Update local state immediately for responsiveness
+    if (tokenId === myUserId) {
+      // Update our own image state
+      setMyImageSrc(imageSrc);
+    } else {
+      // Update other user's image in local state
+      setOtherUsers((prev) => {
+        const updated = new Map(prev);
+        const user = updated.get(tokenId);
+        if (user) {
+          updated.set(tokenId, {
+            ...user,
+            imageSrc,
+          });
+        }
+        return updated;
+      });
+    }
+    
+    // Send update to server
+    if (socketRef.current) {
+      socketRef.current.emit("token-image-update", {
+        tokenId,
+        imageSrc,
+      });
+    }
+  };
+
   const removeToken = (persistentUserId: string) => {
     if (socketRef.current && isDisplay) {
       socketRef.current.emit("remove-token", { persistentUserId });
@@ -494,12 +573,14 @@ export const useSocket = (isDisplay: boolean = false): UseSocketReturn => {
     myUserId,
     myColor,
     myPosition,
+    myImageSrc,
     otherUsers,
     disconnectedUsers,
     covers,
     socket,
     updateMyPosition,
     updateTokenPosition,
+    updateTokenImage,
     removeToken,
     addToken,
     addCover,

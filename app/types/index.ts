@@ -2,6 +2,7 @@ export interface User {
   id: string;
   color: string;
   position: { x: number; y: number };
+  imageSrc?: string | null;
 }
 
 export interface ImageBounds {
