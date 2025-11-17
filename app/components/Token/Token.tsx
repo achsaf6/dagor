@@ -178,7 +178,7 @@ export const Token = ({
 
   return (
     <div
-      className={`absolute rounded-full border-2 border-white shadow-lg ${zIndexClass} ${
+      className={`absolute rounded-full border border-white md:border-2 shadow-lg ${zIndexClass} ${
         isInteractive ? "cursor-move" : ""
       }`}
       title={title}
