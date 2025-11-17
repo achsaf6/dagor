@@ -23,6 +23,23 @@ export const useImageBounds = (containerRef: RefObject<HTMLDivElement | null>) =
     };
 
     window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    const visualViewport = typeof window !== "undefined" ? window.visualViewport : null;
+    if (visualViewport) {
+      visualViewport.addEventListener("resize", handleResize);
+      visualViewport.addEventListener("scroll", handleResize);
+    }
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof window !== "undefined" && "ResizeObserver" in window) {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      if (containerRef.current) {
+        resizeObserver.observe(containerRef.current);
+      }
+    }
 
     // Also recalculate after image loads
     const img = containerRef.current?.querySelector("img");
@@ -37,6 +54,15 @@ export const useImageBounds = (containerRef: RefObject<HTMLDivElement | null>) =
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      if (visualViewport) {
+        visualViewport.removeEventListener("resize", handleResize);
+        visualViewport.removeEventListener("scroll", handleResize);
+      }
+      if (resizeObserver && containerRef.current) {
+        resizeObserver.unobserve(containerRef.current);
+      }
+      resizeObserver?.disconnect();
       if (img) {
         img.removeEventListener("load", updateBounds);
       }

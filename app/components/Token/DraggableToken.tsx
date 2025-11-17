@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { UserToken } from "./UserToken";
 import { usePosition } from "../../hooks/usePosition";
-import { ImageBounds, Position } from "../../types";
+import { ImageBounds, Position, TokenSize } from "../../types";
 import { TokenActionsMenu } from "./TokenActionsMenu";
 
 const LONG_PRESS_DELAY_MS = 600;
@@ -17,6 +17,7 @@ interface DraggableTokenProps {
   position: Position;
   color: string;
   imageSrc?: string | null;
+  size?: TokenSize;
   imageBounds: ImageBounds | null;
   worldMapWidth?: number;
   worldMapHeight?: number;
@@ -40,6 +41,8 @@ interface DraggableTokenProps {
   onDragStateChange?: (tokenId: string, isDragging: boolean) => void;
   isInteractive?: boolean;
   zIndex?: number;
+  onSizeChange?: (tokenId: string, size: TokenSize) => void;
+  allowSizeEditing?: boolean;
 }
 
 export const DraggableToken = ({
@@ -47,6 +50,7 @@ export const DraggableToken = ({
   position,
   color,
   imageSrc,
+  size,
   imageBounds,
   worldMapWidth = 0,
   worldMapHeight = 0,
@@ -65,6 +69,8 @@ export const DraggableToken = ({
   onDragStateChange,
   isInteractive = true,
   zIndex,
+  onSizeChange,
+  allowSizeEditing,
 }: DraggableTokenProps) => {
   // Debug: log when onImageUpload prop changes
   useEffect(() => {
@@ -338,6 +344,15 @@ export const DraggableToken = ({
     setMovementValue(event.target.value);
   }, []);
 
+  const handleTokenSizeChange = useCallback(
+    (newSize: TokenSize) => {
+      if (onSizeChange) {
+        onSizeChange(tokenId, newSize);
+      }
+    },
+    [onSizeChange, tokenId]
+  );
+
   // Use ref to always get latest onImageUpload value, avoiding stale closures
   const handleImageUpload = useCallback(async (file: File) => {
     // Use ref to get the latest value in case prop changes
@@ -413,6 +428,7 @@ export const DraggableToken = ({
       position={position}
       color={color}
       imageSrc={imageSrc}
+      size={size}
       imageBounds={imageBounds}
       worldMapWidth={worldMapWidth}
       worldMapHeight={worldMapHeight}
@@ -437,6 +453,9 @@ export const DraggableToken = ({
           dropdownScale={dropdownScale}
           onImageUpload={handleImageUpload}
           isUploading={isUploading}
+          canEditTokenSize={allowSizeEditing}
+          tokenSize={size}
+          onTokenSizeChange={handleTokenSizeChange}
         />
       )}
     </UserToken>

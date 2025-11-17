@@ -256,7 +256,7 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
   ]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!isSquareToolActive || !imageBounds || !coordinateMapper.isReady || draggingColor) {
+    if (!isSquareToolActive || !imageBounds || !coordinateMapper.isReady || draggingToken) {
       return;
     }
 
