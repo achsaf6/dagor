@@ -5,6 +5,7 @@ import { MapSettings } from "./Settings/MapSettings";
 import { TokenPicker } from "./TokenPicker";
 import { BattlemapManager } from "./BattlemapManager";
 import { GridData } from "../../utils/gridData";
+import { TokenTemplate } from "../../types";
 
 interface SidebarToolbarProps {
   gridScale: number;
@@ -12,7 +13,7 @@ interface SidebarToolbarProps {
   gridOffsetX: number;
   gridOffsetY: number;
   onGridOffsetChange: (x: number, y: number) => void;
-  onTokenDragStart: (color: string) => void;
+  onTokenDragStart: (tokenTemplate: TokenTemplate) => void;
   onTokenDragEnd: () => void;
   onSquareToolToggle: () => void;
   onSquareToolLockToggle: () => void;

@@ -1,5 +1,12 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { useCharacter } from "@/app/providers/CharacterProvider";
+import { useViewMode } from "@/app/hooks/useViewMode";
+import { TokenSize } from "@/app/types";
+import {
+  TOKEN_SIZE_METADATA,
+  TOKEN_SIZE_ORDER,
+  DEFAULT_TOKEN_SIZE,
+} from "@/app/utils/tokenSizes";
 
 interface TokenActionsMenuProps {
   movementInputId: string;
@@ -8,6 +15,9 @@ interface TokenActionsMenuProps {
   dropdownScale: number;
   onImageUpload?: (file: File) => Promise<string | null>;
   isUploading?: boolean;
+  canEditTokenSize?: boolean;
+  tokenSize?: TokenSize;
+  onTokenSizeChange?: (size: TokenSize) => void;
 }
 
 export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps>(
@@ -19,9 +29,13 @@ export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps
       dropdownScale,
       onImageUpload,
       isUploading = false,
+      canEditTokenSize = false,
+      tokenSize = DEFAULT_TOKEN_SIZE,
+      onTokenSizeChange,
     },
     ref
   ) => {
+    const { isMobile } = useViewMode();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [movementInput, setMovementInput] = useState<string>(movementValue);
     const [movementLocalError, setMovementLocalError] = useState<string | null>(null);
@@ -146,6 +160,11 @@ export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps
       }, 0);
     };
 
+    const handleSizeSelect = (size: TokenSize) => {
+      if (size === tokenSize) return;
+      onTokenSizeChange?.(size);
+    };
+
     return (
       <div
         ref={ref}
@@ -160,6 +179,40 @@ export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps
         }}
       >
         <div className="flex flex-col gap-3">
+          {canEditTokenSize && (
+            <div className="flex flex-col gap-2 rounded-md border border-gray-700/60 bg-gray-800/70 px-2 py-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                Token Size
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {TOKEN_SIZE_ORDER.map((sizeKey) => {
+                  const meta = TOKEN_SIZE_METADATA[sizeKey];
+                  const isSelected = tokenSize === sizeKey;
+                  return (
+                    <button
+                      key={sizeKey}
+                      type="button"
+                      className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
+                        isSelected
+                          ? "border-emerald-400/80 bg-emerald-500/20 text-white"
+                          : "border-gray-700/70 bg-gray-900/40 text-gray-200 hover:border-gray-500"
+                      }`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleSizeSelect(sizeKey);
+                      }}
+                    >
+                      {meta.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-gray-300/80">
+                {TOKEN_SIZE_METADATA[tokenSize].description}
+              </p>
+            </div>
+          )}
           <div className="rounded-md border border-gray-700/60 bg-gray-800/80 px-2 py-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
               Character
@@ -226,15 +279,15 @@ export const TokenActionsMenu = forwardRef<HTMLDivElement, TokenActionsMenuProps
             >
               {isUploading ? "Uploading..." : "Upload Image"}
             </button>
-            {hasSelectedCharacter ? (
+            {hasSelectedCharacter && isMobile ? (
               <p className="text-[10px] text-gray-300/80">
                 Stored as <code className="font-mono text-[10px]">characters.{character?.name}</code>
               </p>
-            ) : (
+            ) : !hasSelectedCharacter ? (
               <p className="text-[10px] text-amber-200/80">
                 We&apos;ll keep the art on your token, but set your name to persist it in Supabase.
               </p>
-            )}
+            ) : null}
             {uploadStatus && !uploadError && (
               <p className="text-[10px] text-emerald-200/80">{uploadStatus}</p>
             )}

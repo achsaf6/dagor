@@ -40,6 +40,7 @@ export const UserTokens = ({
           gridData={gridData}
           gridScale={gridScale}
           isMounted={isMounted}
+          size={user.size}
         />
       ))}
     </>

@@ -1,8 +1,19 @@
+export type TokenSize = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
+
+export interface TokenTemplate {
+  color: string;
+  size: TokenSize;
+  imageUrl?: string | null;
+  monsterId?: string | null;
+  name?: string | null;
+}
+
 export interface User {
   id: string;
   color: string;
   position: { x: number; y: number };
   imageSrc?: string | null;
+  size?: TokenSize;
 }
 
 export interface ImageBounds {

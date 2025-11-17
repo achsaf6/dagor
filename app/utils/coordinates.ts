@@ -1,5 +1,6 @@
-import { ImageBounds, Position } from "../types";
+import { ImageBounds, Position, TokenSize } from "../types";
 import { ImageRelativePosition, ScreenPosition } from "../hooks/useCoordinateMapper";
+import { getTokenSnapConfig } from "./tokenSizes";
 
 /**
  * Convert image-relative percentage coordinates to viewport coordinates
@@ -118,7 +119,8 @@ export const snapToGridCenter = (
   },
   gridScale: number = 1.0,
   gridOffsetX: number = 0,
-  gridOffsetY: number = 0
+  gridOffsetY: number = 0,
+  tokenSize?: TokenSize
 ): Position => {
   // Calculate average spacing from original lines (same logic as GridLines)
   const calculateAverageSpacing = (lines: number[]): number => {
@@ -145,6 +147,10 @@ export const snapToGridCenter = (
   // Calculate scaled spacing
   const scaledSpacing = avgSpacing * gridScale;
 
+  if (scaledSpacing <= 0) {
+    return position;
+  }
+
   // Convert position from percentage to world pixels
   const worldX = (position.x / 100) * imageWidth;
   const worldY = (position.y / 100) * imageHeight;
@@ -162,16 +168,19 @@ export const snapToGridCenter = (
   const relativeX = offsetX - centerX;
   const relativeY = offsetY - centerY;
 
-  // Find the nearest grid square center
-  // Grid lines are at: center + n * scaledSpacing (where n is an integer)
-  // Grid square centers are at: center + (n + 0.5) * scaledSpacing (halfway between lines)
-  // First, find which grid cell we're in (using floor to get the cell index)
-  const cellX = Math.floor(relativeX / scaledSpacing);
-  const cellY = Math.floor(relativeY / scaledSpacing);
-  
-  // Then calculate the center of that cell (add 0.5 to get the center)
-  const gridX = (cellX + 0.5) * scaledSpacing;
-  const gridY = (cellY + 0.5) * scaledSpacing;
+  // Determine snapping cadence based on token size
+  const { step: snapStep, phase: snapPhase } = getTokenSnapConfig(tokenSize);
+
+  const unitX = relativeX / scaledSpacing;
+  const unitY = relativeY / scaledSpacing;
+
+  const snappedUnitX =
+    Math.round((unitX - snapPhase) / snapStep) * snapStep + snapPhase;
+  const snappedUnitY =
+    Math.round((unitY - snapPhase) / snapStep) * snapStep + snapPhase;
+
+  const gridX = snappedUnitX * scaledSpacing;
+  const gridY = snappedUnitY * scaledSpacing;
 
   // Convert back to absolute world coordinates
   const snappedWorldX = centerX + gridX + gridOffsetX;

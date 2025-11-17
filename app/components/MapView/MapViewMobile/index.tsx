@@ -32,6 +32,7 @@ export const MapViewMobile = ({ onReadyChange }: MapViewMobileProps) => {
     myColor,
     myPosition,
     myImageSrc,
+    mySize,
     otherUsers,
     disconnectedUsers,
     updateTokenPosition,
@@ -290,6 +291,7 @@ export const MapViewMobile = ({ onReadyChange }: MapViewMobileProps) => {
               position={myPosition}
               color={myColor}
               imageSrc={myImageSrc}
+              size={mySize}
               imageBounds={imageBounds}
               worldMapWidth={worldMapWidth}
               worldMapHeight={worldMapHeight}

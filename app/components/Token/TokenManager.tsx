@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { User, ImageBounds, Position } from "../../types";
+import { User, ImageBounds, Position, TokenSize } from "../../types";
 import { DraggableToken } from "./DraggableToken";
 
 interface TransformConfig {
@@ -31,6 +31,7 @@ interface TokenManagerProps {
   onImageUpload?: (tokenId: string, file: File) => Promise<string | null>;
   transform?: TransformConfig;
   onDragStateChange?: (tokenId: string, isDragging: boolean) => void;
+  onSizeChange?: (tokenId: string, size: TokenSize) => void;
 }
 
 export const TokenManager = ({
@@ -51,6 +52,7 @@ export const TokenManager = ({
   onImageUpload,
   transform,
   onDragStateChange,
+  onSizeChange,
 }: TokenManagerProps) => {
   // Debug: log onImageUpload prop (must be before early return)
   useEffect(() => {
@@ -103,6 +105,9 @@ export const TokenManager = ({
             onDragStateChange={onDragStateChange}
             isInteractive={isTokenInteractive}
             zIndex={tokenZIndex}
+            size={user.size}
+            onSizeChange={onSizeChange}
+            allowSizeEditing={isDisplay}
           />
         );
       })}
@@ -135,6 +140,9 @@ export const TokenManager = ({
             onDragStateChange={onDragStateChange}
             isInteractive={isTokenInteractive}
             zIndex={10}
+            size={user.size}
+            onSizeChange={onSizeChange}
+            allowSizeEditing={isDisplay}
           />
         );
       })}

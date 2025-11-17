@@ -1,11 +1,12 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Position, ImageBounds } from "../../types";
+import { Position, ImageBounds, TokenSize } from "../../types";
 import {
   getViewportPosition,
   getViewportSize,
   positionToImageRelative,
 } from "../../utils/coordinates";
 import { useCoordinateMapper } from "../../hooks/useCoordinateMapper";
+import { getTokenSizeUnits } from "../../utils/tokenSizes";
 
 interface TokenProps {
   position: Position;
@@ -31,6 +32,7 @@ interface TokenProps {
   opacity?: number;
   title?: string;
   children?: ReactNode;
+  size?: TokenSize;
 }
 
 export const Token = ({
@@ -52,6 +54,7 @@ export const Token = ({
   opacity = 1.0,
   title,
   children,
+  size,
 }: TokenProps) => {
   const coordinateMapper = useCoordinateMapper(
     imageBounds,
@@ -169,8 +172,10 @@ export const Token = ({
     viewportPos = getViewportPosition(position, imageBounds);
   }
 
-  // Calculate token size based on grid square size
-  const tokenSize = calculateGridSquareSize();
+  // Calculate token size based on grid square size and category multiplier
+  const baseTokenSize = calculateGridSquareSize();
+  const sizeMultiplier = getTokenSizeUnits(size);
+  const tokenSize = baseTokenSize * sizeMultiplier;
 
   // Use Tailwind z-index classes to avoid hydration issues
   // Only apply custom z-index after mount to prevent hydration mismatch

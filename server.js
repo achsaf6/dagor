@@ -26,6 +26,11 @@ const DEFAULT_SETTINGS = {
   gridOffsetY: 0,
 };
 
+const VALID_TOKEN_SIZES = new Set(["tiny", "small", "medium", "large", "huge", "gargantuan"]);
+const DEFAULT_TOKEN_SIZE = "medium";
+const sanitizeTokenSize = (value) =>
+  typeof value === "string" && VALID_TOKEN_SIZES.has(value) ? value : DEFAULT_TOKEN_SIZE;
+
 const battlemapState = {
   order: [],
   maps: new Map(),
@@ -432,6 +437,7 @@ app.prepare().then(async () => {
       // Use restored data or create new user
       const color = restoredUserData?.color || getRandomColor();
       const position = restoredUserData?.position || { x: 50, y: 50 };
+      const size = sanitizeTokenSize(restoredUserData?.size);
 
       const isDisplay = data?.isDisplay || false;
       const suppressPresence = Boolean(data?.suppressPresence);
@@ -445,6 +451,7 @@ app.prepare().then(async () => {
         persistentUserId: persistentUserId || userId, // Use persistent ID if available
         color,
         position,
+        size,
         isDisplay, // Track if this is a display mode user
         allowBattlemapMutations,
         suppressPresence,
@@ -471,6 +478,7 @@ app.prepare().then(async () => {
         color,
         position,
         imageSrc: userData.imageSrc || null,
+        size,
       });
 
       // Send all active users (excluding display mode users)
@@ -499,6 +507,7 @@ app.prepare().then(async () => {
             color,
             position,
             imageSrc: userData.imageSrc || null,
+            size,
           });
         } else {
           // User reconnected - broadcast reconnection
@@ -508,6 +517,7 @@ app.prepare().then(async () => {
             color,
             position,
             imageSrc: userData.imageSrc || null,
+            size,
           });
         }
       }
@@ -852,6 +862,44 @@ app.prepare().then(async () => {
       }
     });
 
+    // Handle token size updates (display mode only)
+    socket.on('token-size-update', (data) => {
+      if (!userData || !userData.isDisplay) {
+        return;
+      }
+
+      const tokenId = data?.tokenId;
+      if (typeof tokenId !== 'string' || tokenId.trim() === '') {
+        return;
+      }
+
+      const nextSize = sanitizeTokenSize(data?.size);
+
+      const updateUserSize = (target) => {
+        if (target) {
+          target.size = nextSize;
+          return true;
+        }
+        return false;
+      };
+
+      if (!updateUserSize(users.get(tokenId))) {
+        if (!updateUserSize(disconnectedUsers.get(tokenId))) {
+          for (const [, activeUser] of users.entries()) {
+            if (activeUser.persistentUserId === tokenId) {
+              updateUserSize(activeUser);
+              break;
+            }
+          }
+        }
+      }
+
+      io.emit('token-size-updated', {
+        userId: tokenId,
+        size: nextSize,
+      });
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       const user = users.get(userId);
@@ -867,6 +915,7 @@ app.prepare().then(async () => {
           color: user.color,
           position: user.position,
           imageSrc: user.imageSrc || null,
+          size: sanitizeTokenSize(user.size),
           disconnectedAt: Date.now(),
         };
 
@@ -880,6 +929,7 @@ app.prepare().then(async () => {
           color: user.color,
           position: user.position,
           imageSrc: user.imageSrc || null,
+          size: sanitizeTokenSize(user.size),
         });
       } else if (displayUser) {
         // Clean up display mode user
@@ -918,7 +968,7 @@ app.prepare().then(async () => {
 
     // Handle adding a new token (colored token, not a user)
     socket.on('add-token', (data) => {
-      const { color, position } = data;
+      const { color, position, size, imageSrc } = data;
       // Generate a unique ID for this token
       const tokenId = `token-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
       const persistentTokenId = `token-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
@@ -929,6 +979,8 @@ app.prepare().then(async () => {
         persistentUserId: persistentTokenId,
         color: color || getRandomColor(),
         position: position || { x: 50, y: 50 },
+        size: sanitizeTokenSize(size),
+        imageSrc: typeof imageSrc === 'string' ? imageSrc : null,
         isDisplay: false, // Tokens are not display mode users
       };
 
@@ -941,6 +993,8 @@ app.prepare().then(async () => {
         persistentUserId: persistentTokenId,
         color: tokenData.color,
         position: tokenData.position,
+        size: tokenData.size,
+        imageSrc: tokenData.imageSrc || null,
       });
     });
 

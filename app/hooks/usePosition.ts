@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
-import { Position } from "../types";
-import { ImageBounds } from "../types";
+import { ImageBounds, Position, TokenSize } from "../types";
 import { getImagePosition, snapToGridCenter } from "../utils/coordinates";
 import { useCoordinateMapper } from "./useCoordinateMapper";
 
@@ -31,6 +30,7 @@ interface GridSnapConfig {
   gridScale?: number;
   gridOffsetX?: number;
   gridOffsetY?: number;
+  tokenSize?: TokenSize;
 }
 
 /**
@@ -232,7 +232,8 @@ export const usePosition = (
         gridSnapConfig.gridData,
         gridSnapConfig.gridScale ?? 1.0,
         gridSnapConfig.gridOffsetX ?? 0,
-        gridSnapConfig.gridOffsetY ?? 0
+        gridSnapConfig.gridOffsetY ?? 0,
+        gridSnapConfig.tokenSize
       );
       onPositionUpdate(snappedPosition);
       setLastPosition(null);

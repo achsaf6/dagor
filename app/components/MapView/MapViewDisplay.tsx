@@ -15,10 +15,11 @@ import { TokenManager } from "../Token/TokenManager";
 import { GridLines } from "./GridLines";
 import { SidebarToolbar } from "../Toolbar/SidebarToolbar";
 import { CoverManager } from "../Toolbar/CoverManager";
-import { Position } from "../../types";
+import { Position, TokenTemplate } from "../../types";
 import { snapToGridCenter } from "../../utils/coordinates";
 import { DEFAULT_GRID_DATA } from "../../utils/gridData";
 import { useBattlemap } from "../../providers/BattlemapProvider";
+import { getTokenSizeUnits } from "../../utils/tokenSizes";
 
 interface MapViewDisplayProps {
   onReadyChange?: (isReady: boolean) => void;
@@ -32,6 +33,7 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
     disconnectedUsers,
     updateTokenPosition,
     updateTokenImage,
+    updateTokenSize,
     removeToken,
     addToken,
   } = useSocket(true);
@@ -114,7 +116,7 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
   const transform = { scale: 1, translateX: 0, translateY: 0 };
 
   // Drag state for token creation
-  const [draggingColor, setDraggingColor] = useState<string | null>(null);
+  const [draggingToken, setDraggingToken] = useState<TokenTemplate | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Cover management
@@ -133,7 +135,7 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
 
   // Track mouse position during drag
   useEffect(() => {
-    if (!draggingColor) {
+    if (!draggingToken) {
       return;
     }
 
@@ -146,14 +148,14 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
       document.removeEventListener("mousemove", handleMouseMove);
       setDragPosition(null);
     };
-  }, [draggingColor]);
+  }, [draggingToken]);
 
-  const handleTokenDragStart = (color: string) => {
-    setDraggingColor(color);
+  const handleTokenDragStart = (tokenTemplate: TokenTemplate) => {
+    setDraggingToken(tokenTemplate);
   };
 
   const handleTokenDragEnd = () => {
-    setDraggingColor(null);
+    setDraggingToken(null);
     setDragPosition(null);
   };
 
@@ -285,7 +287,7 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     
-    if (!draggingColor || !imageBounds || !coordinateMapper.isReady) {
+    if (!draggingToken || !imageBounds || !coordinateMapper.isReady) {
       return;
     }
 
@@ -309,11 +311,12 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
           effectiveGridData,
           gridScale,
           gridOffsetX,
-          gridOffsetY
+          gridOffsetY,
+          draggingToken.size
         );
       }
 
-      addToken(draggingColor, position);
+      addToken(draggingToken, position);
     }
 
     handleTokenDragEnd();
@@ -404,18 +407,22 @@ export const MapViewDisplay = ({ onReadyChange }: MapViewDisplayProps) => {
         }}
         transform={transform}
         onDragStateChange={() => {}}
+        onSizeChange={updateTokenSize}
       />
       {/* Preview token while dragging */}
-      {draggingColor && dragPosition && imageBounds && (
+      {draggingToken && dragPosition && imageBounds && (
         <div
           className="fixed rounded-full border-2 border-white border-dashed shadow-lg z-30 pointer-events-none opacity-60"
           style={{
             left: `${dragPosition.x}px`,
             top: `${dragPosition.y}px`,
-            width: "40px",
-            height: "40px",
+            width: `${40 * getTokenSizeUnits(draggingToken.size)}px`,
+            height: `${40 * getTokenSizeUnits(draggingToken.size)}px`,
             transform: "translate(-50%, -50%)",
-            backgroundColor: draggingColor,
+            backgroundColor: draggingToken.imageUrl ? undefined : draggingToken.color,
+            backgroundImage: draggingToken.imageUrl ? `url(${draggingToken.imageUrl})` : undefined,
+            backgroundSize: draggingToken.imageUrl ? "cover" : undefined,
+            backgroundPosition: draggingToken.imageUrl ? "center" : undefined,
           }}
         />
       )}

@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Position, ImageBounds } from "../../types";
+import { Position, ImageBounds, TokenSize } from "../../types";
 import { Token } from "./Token";
 
 interface UserTokenProps {
@@ -26,6 +26,7 @@ interface UserTokenProps {
   opacity?: number;
   title?: string;
   children?: ReactNode;
+  size?: TokenSize;
 }
 
 export const UserToken = ({
@@ -47,6 +48,7 @@ export const UserToken = ({
   opacity,
   title,
   children,
+  size,
 }: UserTokenProps) => {
   return (
     <Token
@@ -67,6 +69,7 @@ export const UserToken = ({
       isMounted={isMounted}
       opacity={opacity}
       title={title}
+      size={size}
     >
       {children}
     </Token>
