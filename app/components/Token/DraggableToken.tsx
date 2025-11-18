@@ -126,6 +126,7 @@ export const DraggableToken = ({
       gridScale,
       gridOffsetX,
       gridOffsetY,
+      tokenSize: size,
     },
     position // Pass current position for viewport-relative dragging
   );
