@@ -64,7 +64,6 @@ export const Token = ({
 
   // Track the displayed image source separately to ensure seamless transitions
   const [displayedImageSrc, setDisplayedImageSrc] = useState<string | null | undefined>(imageSrc);
-  const [isImageLoading, setIsImageLoading] = useState(false);
 
   // Preload new images before switching to them
   useEffect(() => {
@@ -75,25 +74,24 @@ export const Token = ({
 
     // If imageSrc is being cleared (set to null), update immediately
     if (!imageSrc) {
-      setDisplayedImageSrc(null);
-      setIsImageLoading(false);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => {
+        setDisplayedImageSrc(null);
+      }, 0);
       return;
     }
 
     // If we're switching from one image to another, preload the new one
-    setIsImageLoading(true);
     const img = new Image();
     
     img.onload = () => {
       // Image loaded successfully, safe to switch
       setDisplayedImageSrc(imageSrc);
-      setIsImageLoading(false);
     };
     
     img.onerror = () => {
       // Image failed to load, still switch to show error state
       setDisplayedImageSrc(imageSrc);
-      setIsImageLoading(false);
     };
     
     img.src = imageSrc;

@@ -129,7 +129,6 @@ export const MapViewMobile = ({ onReadyChange }: MapViewMobileProps) => {
     myPosition,
     worldMapWidth,
     worldMapHeight,
-    zoomScaleRef,
   });
 
   // Auto-center functionality
@@ -151,11 +150,9 @@ export const MapViewMobile = ({ onReadyChange }: MapViewMobileProps) => {
   useHammerGestures({
     containerRef,
     isMounted,
-    panState,
     panStateRef,
     panStartPosRef,
     setPanState,
-    mobileZoomScale,
     setMobileZoomScale,
     zoomScaleRef,
     minZoom,

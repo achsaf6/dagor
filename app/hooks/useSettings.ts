@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../utils/supabase';
 
 export interface MapSettings {
@@ -106,13 +106,17 @@ export const useSettings = () => {
     }
   }, []);
 
-  // Debounced save function to avoid too many database writes
-  const debouncedSave = useCallback(
-    debounce((newSettings: MapSettings) => {
+  // Create debounced save function using useRef to persist across renders
+  const debouncedSaveRef = useRef<((newSettings: MapSettings) => void) | null>(null);
+  if (!debouncedSaveRef.current) {
+    debouncedSaveRef.current = debounce((newSettings: MapSettings) => {
       saveSettings(newSettings);
-    }, 500),
-    [saveSettings]
-  );
+    }, 500);
+  }
+
+  const debouncedSave = useCallback((newSettings: MapSettings) => {
+    debouncedSaveRef.current?.(newSettings);
+  }, []);
 
   const updateSettings = useCallback((updates: Partial<MapSettings>) => {
     const newSettings = { ...settings, ...updates };

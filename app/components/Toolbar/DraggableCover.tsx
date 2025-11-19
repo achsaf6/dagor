@@ -33,78 +33,9 @@ export const DraggableCover = ({
   const isInteractive = isDraggable && typeof onPositionUpdate === "function";
   const canResize = isDraggable && typeof onSizeUpdate === "function";
 
-  if (!imageBounds || !coordinateMapper.isReady) {
-    return null;
-  }
-
-  // Convert image-relative percentage to screen coordinates
-  const topLeft = coordinateMapper.imageRelativeToScreen({
-    x: cover.x,
-    y: cover.y,
-  });
-
-  const bottomRight = coordinateMapper.imageRelativeToScreen({
-    x: cover.x + cover.width,
-    y: cover.y + cover.height,
-  });
-
-  if (!topLeft || !bottomRight) {
-    return null;
-  }
-
-  const left = Math.min(topLeft.x, bottomRight.x);
-  const top = Math.min(topLeft.y, bottomRight.y);
-  const width = Math.abs(bottomRight.x - topLeft.x);
-  const height = Math.abs(bottomRight.y - topLeft.y);
-
-  if (!isInteractive || !onPositionUpdate) {
-    return (
-      <div
-        data-cover
-        className="absolute border-2 border-gray-400 pointer-events-none"
-        style={{
-          left: `${left}px`,
-          top: `${top}px`,
-          width: `${width}px`,
-          height: `${height}px`,
-          backgroundColor: cover.color || "#808080",
-          zIndex: 5,
-        }}
-      />
-    );
-  }
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) {
-      return;
-    }
-
-    // Don't start dragging if clicking on a resize handle
-    const target = e.target as HTMLElement;
-    if (target.dataset.resizeHandle) {
-      return;
-    }
-
-    e.preventDefault();
-    e.stopPropagation();
-    
-    dragStartRef.current = { x: e.clientX, y: e.clientY };
-    coverStartPosRef.current = { x: cover.x, y: cover.y, width: cover.width, height: cover.height };
-    setIsDragging(true);
-  };
-
-  const handleResizeMouseDown = (e: React.MouseEvent, corner: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    dragStartRef.current = { x: e.clientX, y: e.clientY };
-    coverStartPosRef.current = { x: cover.x, y: cover.y, width: cover.width, height: cover.height };
-    setIsResizing(corner);
-  };
-
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!coordinateMapper.isReady || !dragStartRef.current || !coverStartPosRef.current) {
+      if (!coordinateMapper.isReady || !dragStartRef.current || !coverStartPosRef.current || !imageBounds) {
         return;
       }
 
@@ -221,6 +152,75 @@ export const DraggableCover = ({
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+
+  if (!imageBounds || !coordinateMapper.isReady) {
+    return null;
+  }
+
+  // Convert image-relative percentage to screen coordinates
+  const topLeft = coordinateMapper.imageRelativeToScreen({
+    x: cover.x,
+    y: cover.y,
+  });
+
+  const bottomRight = coordinateMapper.imageRelativeToScreen({
+    x: cover.x + cover.width,
+    y: cover.y + cover.height,
+  });
+
+  if (!topLeft || !bottomRight) {
+    return null;
+  }
+
+  const left = Math.min(topLeft.x, bottomRight.x);
+  const top = Math.min(topLeft.y, bottomRight.y);
+  const width = Math.abs(bottomRight.x - topLeft.x);
+  const height = Math.abs(bottomRight.y - topLeft.y);
+
+  if (!isInteractive || !onPositionUpdate) {
+    return (
+      <div
+        data-cover
+        className="absolute border-2 border-gray-400 pointer-events-none"
+        style={{
+          left: `${left}px`,
+          top: `${top}px`,
+          width: `${width}px`,
+          height: `${height}px`,
+          backgroundColor: cover.color || "#808080",
+          zIndex: 5,
+        }}
+      />
+    );
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) {
+      return;
+    }
+
+    // Don't start dragging if clicking on a resize handle
+    const target = e.target as HTMLElement;
+    if (target.dataset.resizeHandle) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    coverStartPosRef.current = { x: cover.x, y: cover.y, width: cover.width, height: cover.height };
+    setIsDragging(true);
+  };
+
+  const handleResizeMouseDown = (e: React.MouseEvent, corner: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    coverStartPosRef.current = { x: cover.x, y: cover.y, width: cover.width, height: cover.height };
+    setIsResizing(corner);
+  };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     if (!onRemoveCover) {

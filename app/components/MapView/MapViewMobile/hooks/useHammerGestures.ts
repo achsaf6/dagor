@@ -4,11 +4,9 @@ import { PanState } from "../types";
 interface UseHammerGesturesParams {
   containerRef: React.RefObject<HTMLDivElement | null>;
   isMounted: boolean;
-  panState: PanState;
   panStateRef: React.MutableRefObject<PanState>;
   panStartPosRef: React.MutableRefObject<{ x: number; y: number } | null>;
   setPanState: React.Dispatch<React.SetStateAction<PanState>>;
-  mobileZoomScale: number;
   setMobileZoomScale: React.Dispatch<React.SetStateAction<number>>;
   zoomScaleRef: React.MutableRefObject<number>;
   minZoom: number;
@@ -21,11 +19,9 @@ interface UseHammerGesturesParams {
 export const useHammerGestures = ({
   containerRef,
   isMounted,
-  panState,
   panStateRef,
   panStartPosRef,
   setPanState,
-  mobileZoomScale,
   setMobileZoomScale,
   zoomScaleRef,
   minZoom,
@@ -265,6 +261,6 @@ export const useHammerGestures = ({
         hammerRef.current = null;
       }
     };
-  }, [isMounted, resetInactivityTimer]);
+  }, [isMounted, resetInactivityTimer, containerRef, draggingTokenIdRef, maxZoom, minZoom, panStartPosRef, panStateRef, setIsPinching, setMobileZoomScale, setPanState, zoomScaleRef]);
 };
 

@@ -35,9 +35,11 @@ export const useViewMode = (
     // Set initial mode and mark as mounted
     // Note: Setting state in layout effect is necessary here to prevent hydration mismatch.
     // This is a required pattern for SSR hydration in Next.js - we must start with consistent
-    // state on server/client, then update after mount. The linter warning can be ignored here.
-    setIsMounted(true);
-    handleResize();
+    // state on server/client, then update after mount. Use setTimeout to avoid synchronous setState.
+    setTimeout(() => {
+      setIsMounted(true);
+      handleResize();
+    }, 0);
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);

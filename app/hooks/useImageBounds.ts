@@ -1,19 +1,22 @@
-import { useState, useEffect, RefObject } from "react";
+import { useState, useEffect, useCallback, RefObject } from "react";
 import { ImageBounds } from "../types";
 import { calculateImageBounds } from "../utils/imageBounds";
 
 export const useImageBounds = (containerRef: RefObject<HTMLDivElement | null>) => {
   const [imageBounds, setImageBounds] = useState<ImageBounds | null>(null);
 
-  const updateBounds = () => {
+  const updateBounds = useCallback(() => {
     if (!containerRef.current) return;
     const bounds = calculateImageBounds(containerRef.current);
     if (bounds) {
       setImageBounds(bounds);
     }
-  };
+  }, [containerRef]);
 
   useEffect(() => {
+    // Capture ref value for cleanup
+    const container = containerRef.current;
+    
     // Calculate image bounds on mount and resize
     // Use a small delay to ensure image is rendered
     const timeoutId = setTimeout(updateBounds, 100);
@@ -36,13 +39,13 @@ export const useImageBounds = (containerRef: RefObject<HTMLDivElement | null>) =
       resizeObserver = new ResizeObserver(() => {
         handleResize();
       });
-      if (containerRef.current) {
-        resizeObserver.observe(containerRef.current);
+      if (container) {
+        resizeObserver.observe(container);
       }
     }
 
     // Also recalculate after image loads
-    const img = containerRef.current?.querySelector("img");
+    const img = container?.querySelector("img");
     if (img) {
       if (img.complete) {
         updateBounds();
@@ -59,15 +62,15 @@ export const useImageBounds = (containerRef: RefObject<HTMLDivElement | null>) =
         visualViewport.removeEventListener("resize", handleResize);
         visualViewport.removeEventListener("scroll", handleResize);
       }
-      if (resizeObserver && containerRef.current) {
-        resizeObserver.unobserve(containerRef.current);
+      if (resizeObserver && container) {
+        resizeObserver.unobserve(container);
       }
       resizeObserver?.disconnect();
       if (img) {
         img.removeEventListener("load", updateBounds);
       }
     };
-  }, []);
+  }, [containerRef, updateBounds]);
 
   return { imageBounds, updateBounds };
 };

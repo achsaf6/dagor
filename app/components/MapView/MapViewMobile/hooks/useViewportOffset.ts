@@ -10,7 +10,6 @@ interface UseViewportOffsetParams {
   myPosition: { x: number; y: number };
   worldMapWidth: number;
   worldMapHeight: number;
-  zoomScaleRef: React.MutableRefObject<number>;
 }
 
 export const useViewportOffset = ({
@@ -20,7 +19,6 @@ export const useViewportOffset = ({
   myPosition,
   worldMapWidth,
   worldMapHeight,
-  zoomScaleRef,
 }: UseViewportOffsetParams) => {
   const [viewportOffset, setViewportOffset] = useState<ViewportOffset>({ offsetX: 0, offsetY: 0 });
   const initializedRef = useRef(false);
@@ -50,7 +48,7 @@ export const useViewportOffset = ({
     const offsetY = viewportCenterY - userScreenPos.y;
 
     return { offsetX, offsetY };
-  }, [imageBounds, coordinateMapper, myUserId, myPosition, worldMapWidth, worldMapHeight, zoomScaleRef]);
+  }, [imageBounds, coordinateMapper, myUserId, myPosition, worldMapWidth, worldMapHeight]);
 
   return {
     viewportOffset,
